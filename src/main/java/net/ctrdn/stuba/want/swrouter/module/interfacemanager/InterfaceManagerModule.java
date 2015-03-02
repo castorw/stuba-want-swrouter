@@ -112,6 +112,7 @@ public class InterfaceManagerModule extends DefaultRouterModule {
             this.logger.info("Enumerated {} interfaces", this.interfaceList.size());
             this.routerController.getPacketProcessor().addPipelineBranch(new PacketLoggerPipelineBranch());
             this.routerController.getPacketProcessor().addPipelineBranch(new PacketOutputPipelineBranch());
+            this.routerController.getPacketProcessor().addPipelineBranch(new PacketForwardPipelineBranch());
         } catch (SocketException ex) {
             ModuleInitializationException finalEx = new ModuleInitializationException("Failed to enumerate interfaces");
             finalEx.addSuppressed(ex);
