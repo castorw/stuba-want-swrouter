@@ -143,7 +143,7 @@ public class RouterController {
         }
     }
 
-    private void writeConfiguration() {
+    public JsonObject getRunningConfiguration() {
         JsonObjectBuilder configJob = Json.createObjectBuilder();
 
         JsonObjectBuilder coreConfigJob = Json.createObjectBuilder();
@@ -162,12 +162,20 @@ public class RouterController {
             }
         }
         configJob.add("ModuleConfiguration", moduleConfigJob);
+        return configJob.build();
+    }
 
+    public JsonObject getStartupConfiguration() {
+        return this.configurationObject;
+    }
+
+    public void writeConfiguration() {
+        this.configurationObject = this.getRunningConfiguration();
         try {
             Map<String, Object> jwConfig = new HashMap<>();
             jwConfig.put(JsonGenerator.PRETTY_PRINTING, true);
             JsonWriter jw = Json.createWriterFactory(jwConfig).createWriter(new FileOutputStream(this.configurationFile));
-            jw.writeObject(configJob.build());
+            jw.writeObject(this.configurationObject);
             this.logger.info("Configuration has been written to {}", this.configurationFile.getAbsolutePath());
         } catch (FileNotFoundException ex) {
             this.logger.warn("Failed to write configuration", ex);
