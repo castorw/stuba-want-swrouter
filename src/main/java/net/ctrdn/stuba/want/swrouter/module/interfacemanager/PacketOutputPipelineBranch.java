@@ -1,6 +1,5 @@
 package net.ctrdn.stuba.want.swrouter.module.interfacemanager;
 
-import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.core.processing.DefaultPipelineBranch;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
