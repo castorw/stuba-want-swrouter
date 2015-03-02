@@ -137,4 +137,8 @@ public class InterfaceManagerModule extends DefaultRouterModule {
     public Integer getRevision() {
         return 1;
     }
+
+    public NetworkInterface[] getNetworkInterfaces() {
+        return this.interfaceList.toArray(new NetworkInterface[this.interfaceList.size()]);
+    }
 }
