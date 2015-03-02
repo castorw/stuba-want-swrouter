@@ -1,13 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>net.ctrdn</groupId>
-  <artifactId>stuba-want-swrouter</artifactId>
-  <version>1.0.0</version>
-  <packaging>jar</packaging>
+    <groupId>net.ctrdn</groupId>
+    <artifactId>stuba-want-swrouter</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
 
-  <name>stuba-want-swrouter</name>
+    <name>stuba-want-swrouter</name>
     <url>http://maven.apache.org</url>
     <build>
         <plugins>
@@ -87,6 +87,16 @@
             <groupId>org.reflections</groupId>
             <artifactId>reflections-maven</artifactId>
             <version>0.9.9-RC1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>9.2.1.v20140609</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>9.2.1.v20140609</version>
         </dependency>
     </dependencies>
 </project>
