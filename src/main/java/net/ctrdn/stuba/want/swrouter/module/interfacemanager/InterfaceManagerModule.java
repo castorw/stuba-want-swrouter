@@ -9,10 +9,13 @@ import java.util.List;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import net.ctrdn.stuba.want.swrouter.common.IPv4Address;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4InterfaceAddress;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4NetworkMask;
 import net.ctrdn.stuba.want.swrouter.core.DefaultRouterModule;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
+import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
@@ -38,11 +41,15 @@ public class InterfaceManagerModule extends DefaultRouterModule {
             if (interfacesConfiguration != null) {
                 for (NetworkInterface iface : this.interfaceList) {
                     if (interfacesConfiguration.containsKey(iface.getName()) && !interfacesConfiguration.isNull(iface.getName())) {
-                        JsonObject ifaceConfig = interfacesConfiguration.getJsonObject(iface.getName());
-                        if (!ifaceConfig.isNull("IPv4Address") && !ifaceConfig.isNull("IPv4NetworkMask")) {
-                            iface.setIPv4Address(new IPv4Address(ifaceConfig.getString("IPv4Address")), new IPv4Address(ifaceConfig.getString("IPv4NetworkMask")));
+                        try {
+                            JsonObject ifaceConfig = interfacesConfiguration.getJsonObject(iface.getName());
+                            if (!ifaceConfig.isNull("IPv4Address") && !ifaceConfig.isNull("IPv4NetworkMask")) {
+                                iface.setIPv4InterfaceAddress(new IPv4InterfaceAddress(IPv4Address.fromString(ifaceConfig.getString("IPv4Address")), new IPv4NetworkMask(ifaceConfig.getInt("IPv4NetworkMask"))));
+                            }
+                            iface.setEnabled(ifaceConfig.getBoolean("Enabled"));
+                        } catch (IPv4MathException ex) {
+                            this.logger.error("Failed to configure IPv4 on interface {}", iface.getName(), ex);
                         }
-                        iface.setEnabled(ifaceConfig.getBoolean("Enabled"));
                     }
                 }
             }
@@ -56,14 +63,11 @@ public class InterfaceManagerModule extends DefaultRouterModule {
         for (NetworkInterface iface : this.interfaceList) {
             JsonObjectBuilder ifaceJob = Json.createObjectBuilder();
             ifaceJob.add("Enabled", iface.isEnabled());
-            if (iface.getIPv4Address() != null) {
-                ifaceJob.add("IPv4Address", iface.getIPv4Address().toString());
+            if (iface.getIPv4InterfaceAddress() != null) {
+                ifaceJob.add("IPv4Address", iface.getIPv4InterfaceAddress().getAddress().toString());
+                ifaceJob.add("IPv4NetworkMask", iface.getIPv4InterfaceAddress().getPrefix().getNetworkMask().getLength());
             } else {
                 ifaceJob.addNull("IPv4Address");
-            }
-            if (iface.getIPv4NetworkMask() != null) {
-                ifaceJob.add("IPv4NetworkMask", iface.getIPv4NetworkMask().toString());
-            } else {
                 ifaceJob.addNull("IPv4NetworkMask");
             }
             interfacesJob.add(iface.getName(), ifaceJob);

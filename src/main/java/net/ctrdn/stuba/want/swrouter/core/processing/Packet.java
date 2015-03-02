@@ -3,9 +3,9 @@ package net.ctrdn.stuba.want.swrouter.core.processing;
 import java.nio.ByteBuffer;
 import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
-import net.ctrdn.stuba.want.swrouter.common.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 import org.jnetpcap.packet.PcapPacket;
@@ -163,7 +163,7 @@ public class Packet {
 
     public void setSourceIPv4Address(IPv4Address ipv4Address) throws PacketException {
         this.checkIPv4Packet();
-        this.pcapPacket.setByteArray(26, ipv4Address.getAddressBytes());
+        this.pcapPacket.setByteArray(26, ipv4Address.getBytes());
     }
 
     public IPv4Address getDestinationIPv4Address() throws PacketException {
@@ -173,7 +173,7 @@ public class Packet {
 
     public void setDestinationIPv4Address(IPv4Address ipv4Address) throws PacketException {
         this.checkIPv4Packet();
-        this.pcapPacket.setByteArray(30, ipv4Address.getAddressBytes());
+        this.pcapPacket.setByteArray(30, ipv4Address.getBytes());
     }
 
     public void defaultIPv4Setup() throws PacketException {

@@ -1,7 +1,7 @@
 package net.ctrdn.stuba.want.swrouter.module.arpmanager;
 
 import java.util.Date;
-import net.ctrdn.stuba.want.swrouter.common.IPv4Address;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 

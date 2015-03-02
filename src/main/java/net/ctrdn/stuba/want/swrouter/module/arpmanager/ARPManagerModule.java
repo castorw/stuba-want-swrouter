@@ -6,7 +6,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import net.ctrdn.stuba.want.swrouter.common.IPv4Address;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.core.DefaultRouterModule;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;

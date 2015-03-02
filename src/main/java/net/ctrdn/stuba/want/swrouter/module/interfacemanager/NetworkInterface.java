@@ -1,7 +1,7 @@
 package net.ctrdn.stuba.want.swrouter.module.interfacemanager;
 
-import net.ctrdn.stuba.want.swrouter.common.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4InterfaceAddress;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 
 public interface NetworkInterface {
@@ -16,11 +16,9 @@ public interface NetworkInterface {
 
     public MACAddress getHardwareAddress();
 
-    public IPv4Address getIPv4Address();
+    public IPv4InterfaceAddress getIPv4InterfaceAddress();
 
-    public IPv4Address getIPv4NetworkMask();
-
-    public void setIPv4Address(IPv4Address address, IPv4Address netmask);
+    public void setIPv4InterfaceAddress(IPv4InterfaceAddress interfaceAddress);
 
     public void sendPacket(Packet packet);
 }

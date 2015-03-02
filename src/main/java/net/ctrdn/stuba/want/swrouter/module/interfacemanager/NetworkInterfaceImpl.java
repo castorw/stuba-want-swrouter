@@ -1,8 +1,9 @@
 package net.ctrdn.stuba.want.swrouter.module.interfacemanager;
 
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
-import net.ctrdn.stuba.want.swrouter.common.IPv4Address;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4InterfaceAddress;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.ProcessingChain;
@@ -32,7 +33,7 @@ public class NetworkInterfaceImpl implements NetworkInterface {
                         ProcessingChain chain = ProcessingChain.FORWARD;
                         Packet packet = new Packet(Receiver.this.networkInterface, pcapPacket);
                         if (packet.getEthernetType() == EthernetType.IPV4) {
-                            if (packet.getDestinationIPv4Address().equals(Receiver.this.networkInterface.getIPv4Address())) {
+                            if (packet.getDestinationIPv4Address().equals(Receiver.this.networkInterface.getIPv4InterfaceAddress().getAddress())) {
                                 chain = ProcessingChain.INPUT;
                             }
                         } else if (packet.getDestinationHardwareAddress().equals(Receiver.this.networkInterface.getHardwareAddress()) || packet.getDestinationHardwareAddress().isBroadcast()) {
@@ -57,8 +58,7 @@ public class NetworkInterfaceImpl implements NetworkInterface {
     private final String name;
     private final int mtu;
     private final MACAddress hardwareAddress;
-    private IPv4Address ipv4Address = null;
-    private IPv4Address ipv4NetworkMask = null;
+    private IPv4InterfaceAddress ipv4InterfaceAddress;
     private boolean enabled = false;
 
     private Pcap pcap;
@@ -90,19 +90,13 @@ public class NetworkInterfaceImpl implements NetworkInterface {
     }
 
     @Override
-    public IPv4Address getIPv4Address() {
-        return this.ipv4Address;
+    public IPv4InterfaceAddress getIPv4InterfaceAddress() {
+        return this.ipv4InterfaceAddress;
     }
 
     @Override
-    public IPv4Address getIPv4NetworkMask() {
-        return this.ipv4NetworkMask;
-    }
-
-    @Override
-    public void setIPv4Address(IPv4Address address, IPv4Address netmask) {
-        this.ipv4Address = address;
-        this.ipv4NetworkMask = netmask;
+    public void setIPv4InterfaceAddress(IPv4InterfaceAddress interfaceAddress) {
+        this.ipv4InterfaceAddress = interfaceAddress;
     }
 
     @Override

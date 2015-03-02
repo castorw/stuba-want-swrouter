@@ -3,7 +3,7 @@ package net.ctrdn.stuba.want.swrouter.module.arpmanager;
 import java.util.Arrays;
 import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
-import net.ctrdn.stuba.want.swrouter.common.IPv4Address;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
@@ -102,7 +102,7 @@ public final class ARPForIPv4PacketEncapsulation {
     }
 
     public void setSenderProtocolAddress(IPv4Address address) {
-        this.packet.getPcapPacket().setByteArray(28, address.getAddressBytes());
+        this.packet.getPcapPacket().setByteArray(28, address.getBytes());
     }
 
     public MACAddress getTargetHardwareAddress() {
@@ -118,6 +118,6 @@ public final class ARPForIPv4PacketEncapsulation {
     }
 
     public void setTargetProtocolAddress(IPv4Address address) {
-        this.packet.getPcapPacket().setByteArray(38, address.getAddressBytes());
+        this.packet.getPcapPacket().setByteArray(38, address.getBytes());
     }
 }
