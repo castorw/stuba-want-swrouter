@@ -24,7 +24,7 @@ public class PacketOutputPipelineBranch extends DefaultPipelineBranch {
 
     @Override
     public int getPriority() {
-        return 90000;
+        return 90001;
     }
 
     @Override
