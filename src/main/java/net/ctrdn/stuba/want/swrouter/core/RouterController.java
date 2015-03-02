@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import javax.json.Json;
@@ -16,11 +17,14 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonGenerator;
+import net.ctrdn.stuba.want.swrouter.api.APIMethodRegistry;
+import net.ctrdn.stuba.want.swrouter.api.APIServlet;
 import net.ctrdn.stuba.want.swrouter.core.processing.PacketProcessor;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +34,8 @@ public class RouterController {
     private final Logger logger = LoggerFactory.getLogger(RouterController.class);
     private final Map<Class<? extends RouterModule>, RouterModule> moduleMap = new HashMap<>();
     private final File configurationFile = new File("stuba-want-swrouter.conf.json");
+    private Date bootDate;
+    private Date bootFinishDate;
     private JsonObject configurationObject;
 
     private String hostname = "SoftwareRouter";
@@ -37,15 +43,22 @@ public class RouterController {
     private PacketProcessor packetProcessor;
 
     public void start() {
-        Thread.currentThread().setName("RouterControllerThread");
-        this.logger.info("Shitstorm Operating System Initializing...");
-        this.logger.info("SHOS v19.12.1 by Shitstorm Telecommunicatons, compiled by shit_rel_team");
-        this.logger.info("This product contains ufopornographic and alien abuse-related content and is not to be released to public. Any misuse or redistribution of content contained within this product is prohibited and will be prosecuted according to the law of the Vajnorska street.");
-        this.loadConfiguration();
-        this.startPacketProcessor();
-        this.loadModules();
-        this.writeConfiguration();
-        this.startModules();
+        try {
+            Thread.currentThread().setName("RouterControllerThread");
+            this.bootDate = new Date();
+            this.logger.info("Shitstorm Operating System Initializing...");
+            this.logger.info("SHOS v19.12.1 by Shitstorm Telecommunicatons, compiled by shit_rel_team");
+            this.logger.info("This product contains ufopornographic and alien abuse-related content and is not to be released to public. Any misuse or redistribution of content contained within this product is prohibited and will be prosecuted according to the law of the Vajnorska street.");
+            this.loadConfiguration();
+            this.startPacketProcessor();
+            this.loadModules();
+            this.writeConfiguration();
+            this.startModules();
+            this.startAPIServer();
+            this.bootFinishDate = new Date();
+        } catch (ModuleInitializationException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     private void loadModules() {
@@ -82,6 +95,23 @@ public class RouterController {
         this.packetProcessor = new PacketProcessor(this.packetProcessorThreadCount);
         if (this.configurationObject.getJsonObject("CoreConfiguration").containsKey("PacketProcessor") && !this.configurationObject.getJsonObject("CoreConfiguration").isNull("PacketProcessor")) {
             this.packetProcessor.reloadConfiguration(this.configurationObject.getJsonObject("CoreConfiguration").getJsonObject("PacketProcessor"));
+        }
+    }
+
+    private void startAPIServer() throws ModuleInitializationException {
+        try {
+            APIMethodRegistry.initalize(this);
+            ServletContextHandler sch = new ServletContextHandler(ServletContextHandler.SESSIONS);
+            sch.setContextPath("/");
+            sch.addServlet(new ServletHolder(new APIServlet(this)), "/api/*");
+            Server server = new Server(8844);
+            server.setHandler(sch);
+            server.start();
+            this.logger.info("Started API server on port {}", 8844);
+        } catch (Exception ex) {
+            ModuleInitializationException finalEx = new ModuleInitializationException("Failed to start API server");
+            finalEx.addSuppressed(ex);
+            throw finalEx;
         }
     }
 
@@ -151,11 +181,23 @@ public class RouterController {
         throw new NoSuchModuleException("Module of class " + moduleClass.getName() + " not loaded");
     }
 
+    public Class<? extends RouterModule>[] getModuleClasses() {
+        return this.moduleMap.keySet().toArray(new Class[this.moduleMap.keySet().size()]);
+    }
+
     public PacketProcessor getPacketProcessor() {
         return packetProcessor;
     }
 
     public String getHostname() {
         return hostname;
+    }
+
+    public Date getBootDate() {
+        return bootDate;
+    }
+
+    public Date getBootFinishDate() {
+        return bootFinishDate;
     }
 }
