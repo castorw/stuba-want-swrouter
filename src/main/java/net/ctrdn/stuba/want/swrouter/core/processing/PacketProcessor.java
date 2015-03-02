@@ -3,7 +3,9 @@ package net.ctrdn.stuba.want.swrouter.core.processing;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -19,6 +21,7 @@ public class PacketProcessor {
     private final Executor threadPool;
     private int threadCount;
     private final List<PipelineBranch> pipeline = new ArrayList<>();
+    private final Map<PipelineBranch, String> pipelineInstallerMap = new HashMap<>();
     private JsonObject configuration;
 
     public PacketProcessor(int threadCount) {
@@ -62,6 +65,7 @@ public class PacketProcessor {
 
     public void addPipelineBranch(PipelineBranch branch) {
         this.pipeline.add(branch);
+        this.pipelineInstallerMap.put(branch, Thread.currentThread().getStackTrace()[2].getClassName());
         Collections.sort(this.pipeline, new Comparator<PipelineBranch>() {
 
             @Override
@@ -86,6 +90,10 @@ public class PacketProcessor {
 
     public PipelineBranch[] getPipelineBranches() {
         return this.pipeline.toArray(new PipelineBranch[this.pipeline.size()]);
+    }
+
+    public String getPipelineBranchInstallerClass(PipelineBranch branch) {
+        return this.pipelineInstallerMap.get(branch);
     }
 
     public void processPacket(final Packet packet) {
