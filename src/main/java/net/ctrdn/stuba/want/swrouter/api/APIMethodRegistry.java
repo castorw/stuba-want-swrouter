@@ -51,6 +51,10 @@ public class APIMethodRegistry {
         return null;
     }
 
+    public String[] getMethodNames() {
+        return this.methodClassMap.keySet().toArray(new String[this.methodClassMap.keySet().size()]);
+    }
+
     public static void initalize(RouterController proxyController) throws APIException {
         APIMethodRegistry.registry = new APIMethodRegistry();
         APIMethodRegistry.routerController = proxyController;
