@@ -38,7 +38,7 @@ public class PacketForwardPipelineBranch extends DefaultPipelineBranch {
                     packet.getEgressNetworkInterface().sendPacket(packet);
                     return PipelineResult.HANDLED;
                 } else {
-                    this.logger.warn("Cannot forward packet {} - no forwarding information set", packet.getPacketIdentifier().getUuid().toString());
+                    this.logger.info("Cannot forward packet {} - no forwarding information set", packet.getPacketIdentifier().getUuid().toString());
                     return PipelineResult.DROP;
                 }
             } catch (PacketException ex) {
