@@ -107,7 +107,7 @@ public class PacketProcessor {
                         }
                         case DROP: {
                             breakPipeline = true;
-                            PacketProcessor.this.logger.warn("Branch {} has dropped packet {}@{}", branch.getName(), packet.getPacketIdentifier().getUuid().toString(), packet.getProcessingChain().name());
+                            PacketProcessor.this.logger.debug("Branch {} has dropped packet {}@{}", branch.getName(), packet.getPacketIdentifier().getUuid().toString(), packet.getProcessingChain().name());
                             break;
                         }
                         case CONTINUE:
@@ -117,7 +117,7 @@ public class PacketProcessor {
                     }
                 }
                 if (!breakPipeline) {
-                    PacketProcessor.this.logger.warn("Packet {}@{} reached the end of processing pipeline without being handled", packet.getPacketIdentifier().getUuid().toString(), packet.getProcessingChain().name());
+                    PacketProcessor.this.logger.info("Packet {}@{} reached the end of processing pipeline without being handled", packet.getPacketIdentifier().getUuid().toString(), packet.getProcessingChain().name());
                 }
             }
         };
