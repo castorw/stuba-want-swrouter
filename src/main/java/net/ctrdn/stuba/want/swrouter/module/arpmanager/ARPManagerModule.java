@@ -112,7 +112,7 @@ public class ARPManagerModule extends DefaultRouterModule {
                 return entry;
             }
         }
-        ARPTableEntry entry = new ARPTableEntry(protocolAddress);
+        ARPTableEntry entry = new ARPTableEntry(protocolAddress, networkInterface);
         this.arpTable.add(entry);
         return entry;
     }
@@ -120,10 +120,10 @@ public class ARPManagerModule extends DefaultRouterModule {
     protected void updateARPTable(IPv4Address protocolAddress, MACAddress hardwareAddress, NetworkInterface networkInterface) {
         ARPTableEntry entry = this.getARPTableEntry(protocolAddress, networkInterface);
         if (entry == null) {
-            entry = new ARPTableEntry(protocolAddress);
+            entry = new ARPTableEntry(protocolAddress, networkInterface);
             this.arpTable.add(entry);
         }
-        entry.update(hardwareAddress, networkInterface);
+        entry.update(hardwareAddress);
         this.logger.debug("Updated ARP Table entry {}@{} on {}", entry.getProtocolAddress(), entry.getHardwareAddress(), entry.getNetworkInterface().getName());
     }
 

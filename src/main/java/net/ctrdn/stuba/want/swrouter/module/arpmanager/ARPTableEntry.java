@@ -9,12 +9,13 @@ public class ARPTableEntry {
 
     private final IPv4Address protocolAddress;
     private MACAddress hardwareAddress = null;
-    private NetworkInterface networkInterface = null;
+    private final NetworkInterface networkInterface;
     private Date lastUpdateDate = null;
     private final Object updateLock = new Object();
 
-    public ARPTableEntry(IPv4Address protocolAddress) {
+    public ARPTableEntry(IPv4Address protocolAddress, NetworkInterface networkInterface) {
         this.protocolAddress = protocolAddress;
+        this.networkInterface = networkInterface;
         this.lastUpdateDate = new Date();
     }
 
@@ -38,9 +39,8 @@ public class ARPTableEntry {
         return lastUpdateDate;
     }
 
-    public void update(MACAddress hardwareAddress, NetworkInterface networkInterface) {
+    public void update(MACAddress hardwareAddress) {
         this.lastUpdateDate = new Date();
-        this.networkInterface = networkInterface;
         this.hardwareAddress = hardwareAddress;
         synchronized (this.updateLock) {
             this.updateLock.notifyAll();
