@@ -16,10 +16,11 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonGenerator;
-import net.ctrdn.stuba.want.swrouter.console.InteractiveConsole;
 import net.ctrdn.stuba.want.swrouter.core.processing.PacketProcessor;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,6 @@ public class RouterController {
         this.loadModules();
         this.writeConfiguration();
         this.startModules();
-        //this.startInteractiveConsole();
     }
 
     private void loadModules() {
@@ -142,11 +142,6 @@ public class RouterController {
         } catch (FileNotFoundException ex) {
             this.logger.warn("Failed to write configuration", ex);
         }
-    }
-
-    private void startInteractiveConsole() {
-        InteractiveConsole console = new InteractiveConsole(this, System.in, System.out);
-        console.start();
     }
 
     public <M extends RouterModule> M getModule(Class<M> moduleClass) throws NoSuchModuleException {
