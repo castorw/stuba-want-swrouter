@@ -21,6 +21,9 @@ public class IPv4Prefix {
     public boolean containsAddress(IPv4Address address) {
         int prefixAddressDec = this.getAddress().getDecimal();
         int addressDec = address.getDecimal();
+        if (prefixAddressDec == 0 && this.getNetworkMask().getLength() == 0) {
+            return true;
+        }
         return (prefixAddressDec >> (32 - this.getNetworkMask().getLength()) == (addressDec >> (32 - this.getNetworkMask().getLength())));
     }
 
