@@ -186,9 +186,9 @@ public class Packet {
         this.pcapPacket.setByteArray(24, new byte[]{(byte) 0x00, (byte) 0x00}); // Zero checksum by default
     }
 
-    public void calculateIPv4Checksum() {
+    public void calculateIPv4Checksum() throws PacketException {
         this.pcapPacket.setByteArray(24, new byte[]{0x00, 0x00});
-        byte[] ipData = this.pcapPacket.getByteArray(14, this.pcapPacket.size() - 14);
+        byte[] ipData = this.pcapPacket.getByteArray(14, this.getIPv4HeaderLength());
         long crc = DataTypeHelpers.RFC1071Checksum(ipData, ipData.length);
         this.pcapPacket.setByteArray(24, DataTypeHelpers.getUnsignedShort((int) crc));
     }
