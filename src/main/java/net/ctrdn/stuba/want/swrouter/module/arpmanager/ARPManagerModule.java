@@ -106,7 +106,7 @@ public class ARPManagerModule extends DefaultRouterModule {
         return pipelineResolutionTimeout;
     }
 
-    protected ARPTableEntry getARPTableEntry(IPv4Address protocolAddress, NetworkInterface networkInterface) {
+    protected synchronized ARPTableEntry getARPTableEntry(IPv4Address protocolAddress, NetworkInterface networkInterface) {
         for (ARPTableEntry entry : this.arpTable) {
             if (entry.getProtocolAddress().equals(protocolAddress) && networkInterface == entry.getNetworkInterface()) {
                 return entry;
@@ -117,7 +117,7 @@ public class ARPManagerModule extends DefaultRouterModule {
         return entry;
     }
 
-    protected void updateARPTable(IPv4Address protocolAddress, MACAddress hardwareAddress, NetworkInterface networkInterface) {
+    protected synchronized void updateARPTable(IPv4Address protocolAddress, MACAddress hardwareAddress, NetworkInterface networkInterface) {
         ARPTableEntry entry = this.getARPTableEntry(protocolAddress, networkInterface);
         if (entry == null) {
             entry = new ARPTableEntry(protocolAddress, networkInterface);
