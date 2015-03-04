@@ -1,5 +1,6 @@
 package net.ctrdn.stuba.want.swrouter.module.interfacemanager;
 
+import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.core.processing.DefaultPipelineBranch;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
@@ -31,6 +32,7 @@ public class PacketOutputPipelineBranch extends DefaultPipelineBranch {
     public PipelineResult process(Packet packet) {
         if (packet.getProcessingChain() == ProcessingChain.OUTPUT) {
             if (packet.getDestinationHardwareAddress() != MACAddress.ZERO && packet.getEgressNetworkInterface() != null) {
+                this.logger.trace("Transmitting OUTPUT packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPcapPacket().getByteArray(0, packet.getPcapPacket().size()), true));
                 packet.getEgressNetworkInterface().sendPacket(packet);
                 this.logger.debug("Transmitted packet {} over network interface {}", packet.getPacketIdentifier().getUuid().toString(), packet.getEgressNetworkInterface().getName());
                 return PipelineResult.HANDLED;

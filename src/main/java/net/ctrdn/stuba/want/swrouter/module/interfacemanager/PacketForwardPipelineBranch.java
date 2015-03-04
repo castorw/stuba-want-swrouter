@@ -1,5 +1,6 @@
 package net.ctrdn.stuba.want.swrouter.module.interfacemanager;
 
+import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.core.processing.DefaultPipelineBranch;
@@ -33,8 +34,15 @@ public class PacketForwardPipelineBranch extends DefaultPipelineBranch {
     public PipelineResult process(Packet packet) {
         if (packet.getProcessingChain() == ProcessingChain.FORWARD && packet.getEthernetType() == EthernetType.IPV4) {
             try {
-                if (packet.getForwarderIPv4Address() != null && packet.getForwarderHardwareAddress() != null && packet.getForwarderHardwareAddress() != MACAddress.ZERO && packet.getEgressNetworkInterface() != null) {
+                if (packet.getForwarderIPv4Address() == null && packet.getForwarderHardwareAddress() == null && packet.getEgressNetworkInterface() != null && !packet.getDestinationHardwareAddress().equals(MACAddress.ZERO) && packet.getDestinationHardwareAddress() != null) {
+                    packet.setSourceHardwareAddress(packet.getEgressNetworkInterface().getHardwareAddress());
+                    this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPcapPacket().getByteArray(0, packet.getPcapPacket().size()), true));
+                    packet.getEgressNetworkInterface().sendPacket(packet);
+                    return PipelineResult.HANDLED;
+                } else if (packet.getForwarderIPv4Address() != null && packet.getForwarderHardwareAddress() != null && !packet.getForwarderHardwareAddress().equals(MACAddress.ZERO) && packet.getEgressNetworkInterface() != null) {
+                    packet.setSourceHardwareAddress(packet.getEgressNetworkInterface().getHardwareAddress());
                     packet.setDestinationHardwareAddress(packet.getForwarderHardwareAddress());
+                    this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPcapPacket().getByteArray(0, packet.getPcapPacket().size()), true));
                     packet.getEgressNetworkInterface().sendPacket(packet);
                     return PipelineResult.HANDLED;
                 } else {

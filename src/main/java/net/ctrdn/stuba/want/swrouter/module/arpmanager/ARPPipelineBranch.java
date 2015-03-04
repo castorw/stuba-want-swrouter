@@ -68,7 +68,8 @@ public class ARPPipelineBranch extends DefaultPipelineBranch {
                         this.logger.info("Failed to resolve forwarder {} hardware address using ARP for packet {} on interface {}", packet.getForwarderIPv4Address(), packet.getPacketIdentifier().getUuid().toString(), packet.getEgressNetworkInterface().getName());
                         return PipelineResult.DROP;
                     }
-                } else if (packet.getProcessingChain() == ProcessingChain.OUTPUT && packet.getDestinationHardwareAddress().equals(MACAddress.ZERO)) {
+                } else if ((packet.getProcessingChain() == ProcessingChain.OUTPUT && packet.getDestinationHardwareAddress().equals(MACAddress.ZERO))
+                        || (packet.getProcessingChain() == ProcessingChain.FORWARD && packet.getForwarderIPv4Address() == null && (packet.getDestinationHardwareAddress() == null || packet.getDestinationHardwareAddress().equals(MACAddress.ZERO)) && packet.getEgressNetworkInterface() != null)) {
                     ARPTableEntry arpTableEntry = this.resolveARPTableEntry(packet.getDestinationIPv4Address(), packet.getEgressNetworkInterface());
                     if (arpTableEntry.isComplete()) {
                         packet.setDestinationHardwareAddress(arpTableEntry.getHardwareAddress());
