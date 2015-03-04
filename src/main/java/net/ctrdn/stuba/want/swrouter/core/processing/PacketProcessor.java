@@ -24,9 +24,8 @@ public class PacketProcessor {
     private final Map<PipelineBranch, String> pipelineInstallerMap = new HashMap<>();
     private JsonObject configuration;
 
-    public PacketProcessor(int threadCount) {
-        this.threadCount = threadCount;
-        this.threadPool = Executors.newFixedThreadPool(this.threadCount, new ThreadFactory() {
+    public PacketProcessor() {
+        this.threadPool = Executors.newCachedThreadPool(new ThreadFactory() {
             private int nextProcessingThreadId = 0;
 
             @Override

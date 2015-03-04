@@ -39,7 +39,6 @@ public class RouterController {
     private JsonObject configurationObject;
 
     private String hostname = "SoftwareRouter";
-    private int packetProcessorThreadCount = 8;
     private PacketProcessor packetProcessor;
 
     public void start() {
@@ -92,7 +91,7 @@ public class RouterController {
     }
 
     private void startPacketProcessor() {
-        this.packetProcessor = new PacketProcessor(this.packetProcessorThreadCount);
+        this.packetProcessor = new PacketProcessor();
         if (this.configurationObject.getJsonObject("CoreConfiguration").containsKey("PacketProcessor") && !this.configurationObject.getJsonObject("CoreConfiguration").isNull("PacketProcessor")) {
             this.packetProcessor.reloadConfiguration(this.configurationObject.getJsonObject("CoreConfiguration").getJsonObject("PacketProcessor"));
         }
@@ -135,7 +134,6 @@ public class RouterController {
             if (this.configurationObject.containsKey("CoreConfiguration")) {
                 JsonObject coreConfigObject = this.configurationObject.getJsonObject("CoreConfiguration");
                 this.hostname = coreConfigObject.getString("Hostname", "SoftwareRouter");
-                this.packetProcessorThreadCount = coreConfigObject.getInt("PacketProcessorThreadCount", 8);
             }
             this.logger.info("Loaded configuration from {}", this.configurationFile.getAbsolutePath());
         } catch (IOException ex) {
@@ -148,7 +146,6 @@ public class RouterController {
 
         JsonObjectBuilder coreConfigJob = Json.createObjectBuilder();
         coreConfigJob.add("Hostname", this.getHostname());
-        coreConfigJob.add("PacketProcessorThreadCount", this.getPacketProcessor().getThreadCount());
         coreConfigJob.add("PacketProcessor", this.packetProcessor.dumpConfiguration());
         configJob.add("CoreConfiguration", coreConfigJob);
 
