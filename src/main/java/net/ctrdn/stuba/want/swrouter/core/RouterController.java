@@ -92,7 +92,7 @@ public class RouterController {
 
     private void startPacketProcessor() {
         this.packetProcessor = new PacketProcessor();
-        if (this.configurationObject.getJsonObject("CoreConfiguration").containsKey("PacketProcessor") && !this.configurationObject.getJsonObject("CoreConfiguration").isNull("PacketProcessor")) {
+        if (this.configurationObject != null && this.configurationObject.containsKey("CoreConfiguration") && this.configurationObject.getJsonObject("CoreConfiguration").containsKey("PacketProcessor") && !this.configurationObject.getJsonObject("CoreConfiguration").isNull("PacketProcessor")) {
             this.packetProcessor.reloadConfiguration(this.configurationObject.getJsonObject("CoreConfiguration").getJsonObject("PacketProcessor"));
         }
     }
