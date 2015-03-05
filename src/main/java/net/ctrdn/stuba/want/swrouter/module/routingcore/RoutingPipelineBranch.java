@@ -3,10 +3,13 @@ package net.ctrdn.stuba.want.swrouter.module.routingcore;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4NetworkMask;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.processing.DefaultPipelineBranch;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.PipelineResult;
 import net.ctrdn.stuba.want.swrouter.core.processing.ProcessingChain;
+import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.InterfaceManagerModule;
@@ -15,33 +18,43 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RoutingPipelineBranch extends DefaultPipelineBranch {
-    
+
     private final Logger logger = LoggerFactory.getLogger(RoutingPipelineBranch.class);
+    private final IPv4Prefix multicastPrefix;
     private final RoutingCoreModule routingCoreModule;
-    
+
     public RoutingPipelineBranch(RoutingCoreModule routingCoreModule) {
         this.routingCoreModule = routingCoreModule;
+        try {
+            this.multicastPrefix = new IPv4Prefix(IPv4Address.fromString("224.0.0.0"), new IPv4NetworkMask(4));
+        } catch (IPv4MathException ex) {
+            throw new RuntimeException(ex);
+        }
     }
-    
+
     @Override
     public String getName() {
         return "ROUTING";
     }
-    
+
     @Override
     public String getDescription() {
         return "Provides routing information required for packet forwarding";
     }
-    
+
     @Override
     public int getPriority() {
         return 2048;
     }
-    
+
     @Override
     public PipelineResult process(Packet packet) {
         if (packet.getProcessingChain() == ProcessingChain.FORWARD && packet.getEthernetType() == EthernetType.IPV4) {
             try {
+                if (this.multicastPrefix.containsAddress(packet.getDestinationIPv4Address())) {
+                    this.logger.debug("Ignoring packet {} with multicast destination {}", packet.getPacketIdentifier().getUuid().toString(), packet.getDestinationIPv4Address());
+                    return PipelineResult.CONTINUE;
+                }
                 NetworkInterface destinationInterfaceLookup = this.lookupInterface(packet.getDestinationIPv4Address());
                 if (destinationInterfaceLookup != null) {
                     // the target network is connected
@@ -74,7 +87,7 @@ public class RoutingPipelineBranch extends DefaultPipelineBranch {
         }
         return PipelineResult.CONTINUE;
     }
-    
+
     private NetworkInterface lookupInterface(IPv4Address address) {
         try {
             InterfaceManagerModule interfaceManagerModule = this.routingCoreModule.getRouterController().getModule(InterfaceManagerModule.class);
