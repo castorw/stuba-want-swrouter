@@ -6,6 +6,18 @@ public class IPv4NetworkMask {
 
     private final int length;
 
+    public final static IPv4NetworkMask fromBytes(byte[] data) throws IPv4MathException {
+        int onesCount = 0;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 8; j++) {
+                if ((data[i] & (1 << j)) > 0) {
+                    onesCount++;
+                }
+            }
+        }
+        return new IPv4NetworkMask(onesCount);
+    }
+
     public IPv4NetworkMask(int length) throws IPv4MathException {
         if (length > 32 || length < 0) {
             throw new IPv4MathException("Netmask must be in range from 0 to 32");
