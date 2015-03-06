@@ -7,6 +7,7 @@ import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonString;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4NetworkMask;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
@@ -41,8 +42,8 @@ public class StaticRoutingModule extends DefaultRouterModule {
                         JsonArray gwArray = routeObj.getJsonArray("Gateways");
                         int administrativeDistance = routeObj.getInt("AdministrativeDistance");
                         StaticIPv4Route route = new StaticIPv4Route(prefix, administrativeDistance);
-                        for (String addressString : gwArray.toArray(new String[gwArray.size()])) {
-                            IPv4Address gwAddress = IPv4Address.fromString(addressString);
+                        for (JsonString addressString : gwArray.getValuesAs(JsonString.class)) {
+                            IPv4Address gwAddress = IPv4Address.fromString(addressString.getString());
                             route.addGatewayAddress(gwAddress);
                             this.logger.debug("Added route to {} via {} with AD of {}", prefix, gwAddress, administrativeDistance);
                         }
