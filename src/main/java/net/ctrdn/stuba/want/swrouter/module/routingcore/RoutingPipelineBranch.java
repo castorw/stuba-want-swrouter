@@ -55,29 +55,27 @@ public class RoutingPipelineBranch extends DefaultPipelineBranch {
                     this.logger.debug("Ignoring packet {} with multicast destination {}", packet.getPacketIdentifier().getUuid().toString(), packet.getDestinationIPv4Address());
                     return PipelineResult.CONTINUE;
                 }
-                NetworkInterface destinationInterfaceLookup = this.lookupInterface(packet.getDestinationIPv4Address());
-                if (destinationInterfaceLookup != null) {
-                    // the target network is connected
-                    packet.setDestinationHardwareAddress(MACAddress.ZERO);
-                    packet.setEgressNetworkInterface(destinationInterfaceLookup);
-                    return PipelineResult.CONTINUE;
-                } else {
-                    // the target network is accessed via nexthop router
-                    IPv4Route route = this.routingCoreModule.lookupRoute(packet.getDestinationIPv4Address());
-                    if (route != null) {
-                        IPv4Address nextHopAddress = route.getNextGateway().getGatewayAddress();
+                // the target network is accessed via nexthop router
+                IPv4Route route = this.routingCoreModule.lookupRoute(packet.getDestinationIPv4Address());
+                if (route != null) {
+                    IPv4RouteGateway gateway = route.getNextGateway();
+                    if (gateway.getGatewayAddress() != null) {
+                        IPv4Address nextHopAddress = gateway.getGatewayAddress();
                         NetworkInterface egressInterface = this.lookupInterface(nextHopAddress);
                         if (egressInterface != null) {
                             packet.setEgressNetworkInterface(egressInterface);
                             packet.setForwarderIPv4Address(nextHopAddress);
                             return PipelineResult.CONTINUE;
                         } else {
-                            this.logger.warn("No interface for route {} for packet {}", route, packet.getPacketIdentifier().getUuid().toString());
+                            this.logger.warn("No interface available for route {} for packet {}", route, packet.getPacketIdentifier().getUuid().toString());
                         }
-                    } else {
-                        this.logger.info("No route to host {} for packet {}", packet.getDestinationIPv4Address(), packet.getPacketIdentifier().getUuid().toString());
+                    } else if (gateway.getGatewayInterface() != null) {
+                        packet.setEgressNetworkInterface(gateway.getGatewayInterface());
+                        packet.setDestinationHardwareAddress(MACAddress.ZERO);
+                        return PipelineResult.CONTINUE;
                     }
                 }
+                this.logger.info("No route to host {} for packet {}", packet.getDestinationIPv4Address(), packet.getPacketIdentifier().getUuid().toString());
             } catch (PacketException ex) {
                 this.logger.warn("Routing lookup failed for packet {}", packet.getPacketIdentifier().getUuid().toString(), ex);
             }

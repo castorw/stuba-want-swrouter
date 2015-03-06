@@ -4,10 +4,16 @@ import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4InterfaceAddress;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.ProcessingChain;
+import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
+import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4Route;
+import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteFlag;
+import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteGateway;
+import net.ctrdn.stuba.want.swrouter.module.routingcore.RoutingCoreModule;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
 import org.jnetpcap.packet.PcapPacket;
@@ -60,6 +66,7 @@ public class NetworkInterfaceImpl implements NetworkInterface {
     private final MACAddress hardwareAddress;
     private IPv4InterfaceAddress ipv4InterfaceAddress;
     private boolean enabled = false;
+    private IPv4Route route = null;
 
     private Pcap pcap;
     private final PcapIf pcapInterface;
@@ -128,6 +135,8 @@ public class NetworkInterfaceImpl implements NetworkInterface {
             this.receiver = new Receiver();
             this.receiverThread = new Thread(this.receiver);
             this.receiverThread.start();
+
+            this.installConnectedRoute();
         }
     }
 
@@ -136,6 +145,7 @@ public class NetworkInterfaceImpl implements NetworkInterface {
             this.receiver.running = false;
             this.receiverThread = null;
             this.receiver = null;
+            this.uninstallConnectedRoute();
         }
     }
 
@@ -145,6 +155,74 @@ public class NetworkInterfaceImpl implements NetworkInterface {
             this.pcap.sendPacket(packet.getPcapPacket());
         } else {
             this.logger.warn("Cannot transmit data over inactive interface");
+        }
+    }
+
+    private void installConnectedRoute() {
+        try {
+            this.uninstallConnectedRoute();
+            this.route = new IPv4Route() {
+
+                IPv4RouteGateway gateway = new IPv4RouteGateway() {
+
+                    @Override
+                    public IPv4Address getGatewayAddress() {
+                        return null;
+                    }
+
+                    @Override
+                    public NetworkInterface getGatewayInterface() {
+                        return (NetworkInterface) NetworkInterfaceImpl.this;
+                    }
+
+                    @Override
+                    public boolean isAvailable() {
+                        return NetworkInterfaceImpl.this.isEnabled();
+                    }
+                };
+                private final IPv4RouteFlag connectedFlag = new IPv4RouteFlag("C", "Connected", "Network on directly connected interface");
+
+                @Override
+                public IPv4Prefix getTargetPrefix() {
+                    return NetworkInterfaceImpl.this.getIPv4InterfaceAddress().getPrefix();
+                }
+
+                @Override
+                public IPv4RouteGateway getNextGateway() {
+                    return this.gateway;
+                }
+
+                @Override
+                public IPv4RouteGateway[] getGateways() {
+                    return new IPv4RouteGateway[]{this.gateway};
+                }
+
+                @Override
+                public int getAdministrativeDistance() {
+                    return 0;
+                }
+
+                @Override
+                public IPv4RouteFlag[] getFlags() {
+                    return new IPv4RouteFlag[]{this.connectedFlag};
+                }
+            };
+
+            RoutingCoreModule routingCoreModule = this.routerController.getModule(RoutingCoreModule.class);
+            routingCoreModule.installRoute(route);
+        } catch (NoSuchModuleException ex) {
+            this.logger.error("Failed to add connected route - routing core module is not available", ex);
+        }
+    }
+
+    private void uninstallConnectedRoute() {
+        if (this.route != null) {
+            try {
+                RoutingCoreModule routingCoreModule = this.routerController.getModule(RoutingCoreModule.class);
+                routingCoreModule.uninstallRoute(this.route);
+            } catch (NoSuchModuleException ex) {
+                this.logger.error("Failed to remove connected route - routing core module is not available", ex);
+            }
         }
     }
 }

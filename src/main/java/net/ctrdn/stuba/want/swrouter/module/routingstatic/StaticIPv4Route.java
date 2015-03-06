@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
-import net.ctrdn.stuba.want.swrouter.exception.RoutingException;
+import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4Route;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteFlag;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteGateway;
@@ -23,6 +23,16 @@ public class StaticIPv4Route implements IPv4Route {
         @Override
         public IPv4Address getGatewayAddress() {
             return this.gatewayAddress;
+        }
+
+        @Override
+        public NetworkInterface getGatewayInterface() {
+            return null;
+        }
+
+        @Override
+        public boolean isAvailable() {
+            return true;
         }
 
     }
@@ -66,26 +76,6 @@ public class StaticIPv4Route implements IPv4Route {
     @Override
     public IPv4RouteFlag[] getFlags() {
         return new IPv4RouteFlag[]{new IPv4RouteFlag("S", "Static", "Administratively configured static route")};
-    }
-
-    @Override
-    public void addFlag(IPv4RouteFlag flag) throws RoutingException {
-        if (flag.getSymbol().equals("S")) {
-            throw new RoutingException("Flag \"S\" is reserved by static routing and cannot be applied.");
-        }
-        if (!this.flagList.contains(flag)) {
-            this.flagList.add(flag);
-        }
-    }
-
-    @Override
-    public void removeFlag(IPv4RouteFlag flag) throws RoutingException {
-        if (flag.getSymbol().equals("S")) {
-            throw new RoutingException("Flag \"S\" is reserved by static routing and cannot be removed.");
-        }
-        if (this.flagList.contains(flag)) {
-            this.flagList.remove(flag);
-        }
     }
 
     protected void addGatewayAddress(IPv4Address address) {

@@ -36,10 +36,6 @@ public interface IPv4Route {
      */
     public IPv4RouteFlag[] getFlags();
 
-    public void addFlag(IPv4RouteFlag flag) throws RoutingException;
-
-    public void removeFlag(IPv4RouteFlag flag) throws RoutingException;
-
     @Override
     public String toString();
 }

@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 public class InterfaceManagerModule extends DefaultRouterModule {
 
-    private boolean initialized = false;
     private JsonObject configuration;
     private final Logger logger = LoggerFactory.getLogger(InterfaceManagerModule.class);
     private final List<NetworkInterface> interfaceList = new ArrayList<>();
@@ -112,7 +111,6 @@ public class InterfaceManagerModule extends DefaultRouterModule {
                     return o1.getName().compareTo(o2.getName());
                 }
             });
-            this.initialized = true;
             this.logger.info("Enumerated {} interfaces", this.interfaceList.size());
             this.routerController.getPacketProcessor().addPipelineBranch(new PacketLoggerPipelineBranch());
             this.routerController.getPacketProcessor().addPipelineBranch(new PacketOutputPipelineBranch());
