@@ -15,6 +15,7 @@ import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
+import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteGateway;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.RoutingCoreModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +38,15 @@ public class StaticRoutingModule extends DefaultRouterModule {
                 for (JsonObject routeObj : routesArray.getValuesAs(JsonObject.class)) {
                     try {
                         IPv4Prefix prefix = new IPv4Prefix(IPv4Address.fromString(routeObj.getString("PrefixAddress")), new IPv4NetworkMask(routeObj.getInt("PrefixLength")));
-                        IPv4Address nextHopAddress = IPv4Address.fromString(routeObj.getString("NextHopAddress"));
+                        JsonArray gwArray = routeObj.getJsonArray("Gateways");
                         int administrativeDistance = routeObj.getInt("AdministrativeDistance");
-                        StaticIPv4Route route = new StaticIPv4Route(prefix, nextHopAddress, administrativeDistance);
+                        StaticIPv4Route route = new StaticIPv4Route(prefix, administrativeDistance);
+                        for (String addressString : gwArray.toArray(new String[gwArray.size()])) {
+                            IPv4Address gwAddress = IPv4Address.fromString(addressString);
+                            route.addGatewayAddress(gwAddress);
+                            this.logger.debug("Added route to {} via {} with AD of {}", prefix, gwAddress, administrativeDistance);
+                        }
                         this.routeList.add(route);
-                        this.logger.debug("Added route to {} via {} with AD of {}", prefix, nextHopAddress, administrativeDistance);
                     } catch (IPv4MathException ex) {
                         this.logger.warn("Failed to load route", ex);
                     }
@@ -59,8 +64,14 @@ public class StaticRoutingModule extends DefaultRouterModule {
             JsonObjectBuilder routeJob = Json.createObjectBuilder();
             routeJob.add("PrefixAddress", route.getTargetPrefix().getAddress().toString());
             routeJob.add("PrefixLength", route.getTargetPrefix().getNetworkMask().getLength());
-            routeJob.add("NextHopAddress", route.getNextHopAddress().toString());
             routeJob.add("AdministrativeDistance", route.getAdministrativeDistance());
+
+            JsonArrayBuilder gatewaysJab = Json.createArrayBuilder();
+            for (IPv4RouteGateway gw : route.getGateways()) {
+                gatewaysJab.add(gw.getGatewayAddress().toString());
+            }
+            routeJob.add("Gateways", gatewaysJab);
+
             routesJab.add(routeJob);
         }
         configJob.add("StaticRoutes", routesJab);
@@ -89,6 +100,11 @@ public class StaticRoutingModule extends DefaultRouterModule {
     @Override
     public Integer getRevision() {
         return 1;
+    }
+
+    @Override
+    public int getLoadPriority() {
+        return 768;
     }
 
     public void reinstallRoutes() {

@@ -142,6 +142,11 @@ public class InterfaceManagerModule extends DefaultRouterModule {
         return 1;
     }
 
+    @Override
+    public int getLoadPriority() {
+        return 16;
+    }
+
     public NetworkInterface[] getNetworkInterfaces() {
         return this.interfaceList.toArray(new NetworkInterface[this.interfaceList.size()]);
     }

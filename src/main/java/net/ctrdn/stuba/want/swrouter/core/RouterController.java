@@ -8,8 +8,12 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -62,25 +66,43 @@ public class RouterController {
 
     private void loadModules() {
         this.logger.info("Loading modules...");
+        List<RouterModule> foundModuleList = new ArrayList<>();
         Reflections loaderReflections = new Reflections("net.ctrdn");
-        Integer successCount = 0;
-        Integer failureCount = 0;
         for (Class moduleClass : loaderReflections.getSubTypesOf(RouterModule.class)) {
             if (!Modifier.isAbstract(moduleClass.getModifiers())) {
                 try {
                     Constructor moduleConstructor = moduleClass.getDeclaredConstructor(RouterController.class);
                     RouterModule moduleInstance = (RouterModule) moduleConstructor.newInstance(this);
-                    this.moduleMap.put(moduleClass, moduleInstance);
-                    moduleInstance.initialize();
-                    moduleInstance.reloadConfiguration(this.getModuleConfiguration(moduleClass));
-                    this.logger.debug("Loaded and initialized module {} revision {}", moduleInstance.getName(), moduleInstance.getRevision());
-                    successCount++;
-                } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InstantiationException | InvocationTargetException | ModuleInitializationException ex) {
+                    foundModuleList.add(moduleInstance);
+                } catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InstantiationException | InvocationTargetException ex) {
                     this.logger.warn("Failed to load module", ex);
-                    failureCount++;
                 }
             }
         }
+
+        Integer successCount = 0;
+        Integer failureCount = 0;
+
+        Collections.sort(foundModuleList, new Comparator<RouterModule>() {
+
+            @Override
+            public int compare(RouterModule o1, RouterModule o2) {
+                return o1.getLoadPriority() < o2.getLoadPriority() ? -1 : o1.getLoadPriority() == o2.getLoadPriority() ? 0 : 1;
+            }
+        });
+
+        for (RouterModule module : foundModuleList) {
+            try {
+                this.moduleMap.put(module.getClass(), module);
+                module.initialize();
+                module.reloadConfiguration(this.getModuleConfiguration(module.getClass()));
+                this.logger.debug("Loaded and initialized module {} revision {}", module.getName(), module.getRevision());
+                successCount++;
+            } catch (ModuleInitializationException ex) {
+                failureCount++;
+            }
+        }
+
         this.logger.info("Router module load completed ({} loaded, {} failed)", successCount, failureCount);
     }
 

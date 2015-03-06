@@ -49,7 +49,7 @@ public class RoutingPipelineBranch extends DefaultPipelineBranch {
 
     @Override
     public PipelineResult process(Packet packet) {
-        if (packet.getProcessingChain() == ProcessingChain.FORWARD && packet.getEthernetType() == EthernetType.IPV4) {
+        if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.OUTPUT) && packet.getEthernetType() == EthernetType.IPV4) {
             try {
                 if (this.multicastPrefix.containsAddress(packet.getDestinationIPv4Address())) {
                     this.logger.debug("Ignoring packet {} with multicast destination {}", packet.getPacketIdentifier().getUuid().toString(), packet.getDestinationIPv4Address());
@@ -65,13 +65,14 @@ public class RoutingPipelineBranch extends DefaultPipelineBranch {
                     // the target network is accessed via nexthop router
                     IPv4Route route = this.routingCoreModule.lookupRoute(packet.getDestinationIPv4Address());
                     if (route != null) {
-                        NetworkInterface egressInterface = this.lookupInterface(route.getNextHopAddress());
+                        IPv4Address nextHopAddress = route.getNextGateway().getGatewayAddress();
+                        NetworkInterface egressInterface = this.lookupInterface(nextHopAddress);
                         if (egressInterface != null) {
                             packet.setEgressNetworkInterface(egressInterface);
-                            packet.setForwarderIPv4Address(route.getNextHopAddress());
+                            packet.setForwarderIPv4Address(nextHopAddress);
                             return PipelineResult.CONTINUE;
                         } else {
-                            this.logger.info("No interface for route {} for packet {}", route, packet.getPacketIdentifier().getUuid().toString());
+                            this.logger.warn("No interface for route {} for packet {}", route, packet.getPacketIdentifier().getUuid().toString());
                         }
                     } else {
                         this.logger.info("No route to host {} for packet {}", packet.getDestinationIPv4Address(), packet.getPacketIdentifier().getUuid().toString());

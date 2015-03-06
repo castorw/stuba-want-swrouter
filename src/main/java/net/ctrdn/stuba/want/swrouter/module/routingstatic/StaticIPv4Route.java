@@ -1,23 +1,40 @@
 package net.ctrdn.stuba.want.swrouter.module.routingstatic;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.exception.RoutingException;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4Route;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteFlag;
+import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteGateway;
 
 public class StaticIPv4Route implements IPv4Route {
 
+    public class RouteGateway implements IPv4RouteGateway {
+
+        private final IPv4Address gatewayAddress;
+
+        public RouteGateway(IPv4Address address) {
+            this.gatewayAddress = address;
+        }
+
+        @Override
+        public IPv4Address getGatewayAddress() {
+            return this.gatewayAddress;
+        }
+
+    }
+
     private final IPv4Prefix targetPrefix;
-    private final IPv4Address nextHopAddress;
+    private final List<RouteGateway> gatewayList = Collections.synchronizedList(new ArrayList<RouteGateway>());
+    private int nextGatewayIndex = 0;
     private final int administrativeDistance;
     private final List<IPv4RouteFlag> flagList = new ArrayList<>();
 
-    public StaticIPv4Route(IPv4Prefix targetPrefix, IPv4Address nextHopAddress, int administrativeDistance) {
+    public StaticIPv4Route(IPv4Prefix targetPrefix, int administrativeDistance) {
         this.targetPrefix = targetPrefix;
-        this.nextHopAddress = nextHopAddress;
         this.administrativeDistance = administrativeDistance;
     }
 
@@ -27,8 +44,18 @@ public class StaticIPv4Route implements IPv4Route {
     }
 
     @Override
-    public IPv4Address getNextHopAddress() {
-        return this.nextHopAddress;
+    public IPv4RouteGateway getNextGateway() {
+        IPv4RouteGateway gw = (IPv4RouteGateway) this.gatewayList.get(this.nextGatewayIndex);
+        this.nextGatewayIndex++;
+        if (this.nextGatewayIndex >= this.gatewayList.size()) {
+            this.nextGatewayIndex = 0;
+        }
+        return gw;
+    }
+
+    @Override
+    public IPv4RouteGateway[] getGateways() {
+        return this.gatewayList.toArray(new IPv4RouteGateway[this.gatewayList.size()]);
     }
 
     @Override
@@ -61,4 +88,7 @@ public class StaticIPv4Route implements IPv4Route {
         }
     }
 
+    protected void addGatewayAddress(IPv4Address address) {
+        this.gatewayList.add(new RouteGateway(address));
+    }
 }

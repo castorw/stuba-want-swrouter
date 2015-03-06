@@ -98,6 +98,11 @@ public class ARPManagerModule extends DefaultRouterModule {
         return 1;
     }
 
+    @Override
+    public int getLoadPriority() {
+        return 128;
+    }
+
     protected RouterController getRouterController() {
         return this.routerController;
     }

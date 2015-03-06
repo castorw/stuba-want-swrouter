@@ -1,6 +1,5 @@
 package net.ctrdn.stuba.want.swrouter.module.routingcore;
 
-import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.exception.RoutingException;
 
@@ -19,7 +18,9 @@ public interface IPv4Route {
      *
      * @return IPv4 address of next forwarding router
      */
-    public IPv4Address getNextHopAddress();
+    public IPv4RouteGateway getNextGateway();
+
+    public IPv4RouteGateway[] getGateways();
 
     /**
      * Administrative distance.

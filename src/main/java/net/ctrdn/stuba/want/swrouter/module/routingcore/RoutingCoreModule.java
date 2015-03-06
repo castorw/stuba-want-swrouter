@@ -47,6 +47,11 @@ public class RoutingCoreModule extends DefaultRouterModule {
         return 1;
     }
 
+    @Override
+    public int getLoadPriority() {
+        return 512;
+    }
+
     public void installRoute(IPv4Route route) {
         if (!this.routeList.contains(route)) {
             this.routeList.add(route);

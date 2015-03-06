@@ -41,6 +41,11 @@ public class ICMPModule extends DefaultRouterModule {
         return 1;
     }
 
+    @Override
+    public int getLoadPriority() {
+        return 256;
+    }
+
     protected RouterController getRouterController() {
         return this.routerController;
     }
