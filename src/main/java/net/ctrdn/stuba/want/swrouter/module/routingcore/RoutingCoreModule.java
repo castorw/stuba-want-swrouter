@@ -10,9 +10,12 @@ import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.core.DefaultRouterModule;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RoutingCoreModule extends DefaultRouterModule {
 
+    private final Logger logger = LoggerFactory.getLogger(RoutingCoreModule.class);
     private final List<IPv4Route> routeList = new ArrayList<>();
 
     public RoutingCoreModule(RouterController controller) {
@@ -71,6 +74,18 @@ public class RoutingCoreModule extends DefaultRouterModule {
                     return prefixComp;
                 }
             });
+            String hopString = "";
+            for (IPv4RouteGateway gw : route.getGateways()) {
+                if (!hopString.isEmpty()) {
+                    hopString += ", ";
+                }
+                if (gw.getGatewayAddress() != null) {
+                    hopString += gw.getGatewayAddress();
+                } else if (gw.getGatewayInterface() != null) {
+                    hopString += gw.getGatewayInterface().getName();
+                }
+            }
+            this.logger.debug("Installed route to {} via {} with AD {}", route.getTargetPrefix(), hopString, route.getAdministrativeDistance());
         }
     }
 
