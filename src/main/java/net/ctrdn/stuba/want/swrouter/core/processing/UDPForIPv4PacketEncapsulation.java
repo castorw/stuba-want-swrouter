@@ -16,54 +16,62 @@ public class UDPForIPv4PacketEncapsulation {
         }
     }
 
+    public int getHeaderLength() {
+        return 8;
+    }
+
     public int getSourcePort() throws PacketException {
-        byte msb = this.packet.getPcapPacket().getByte(14 + this.packet.getIPv4HeaderLength() + 0);
-        byte lsb = this.packet.getPcapPacket().getByte(14 + this.packet.getIPv4HeaderLength() + 1);
+        byte msb = this.getPacket().getPcapPacket().getByte(14 + this.getPacket().getIPv4HeaderLength() + 0);
+        byte lsb = this.getPacket().getPcapPacket().getByte(14 + this.getPacket().getIPv4HeaderLength() + 1);
         return DataTypeHelpers.getUnsignedShortFromBytes(msb, lsb);
     }
 
     public void setSourcePort(int port) throws PacketException {
-        this.packet.getPcapPacket().setByteArray(14 + this.packet.getIPv4HeaderLength() + 0, DataTypeHelpers.getUnsignedShort(port));
+        this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 0, DataTypeHelpers.getUnsignedShort(port));
     }
 
     public int getDestinationPort() throws PacketException {
-        byte msb = this.packet.getPcapPacket().getByte(14 + this.packet.getIPv4HeaderLength() + 2);
-        byte lsb = this.packet.getPcapPacket().getByte(14 + this.packet.getIPv4HeaderLength() + 3);
+        byte msb = this.getPacket().getPcapPacket().getByte(14 + this.getPacket().getIPv4HeaderLength() + 2);
+        byte lsb = this.getPacket().getPcapPacket().getByte(14 + this.getPacket().getIPv4HeaderLength() + 3);
         return DataTypeHelpers.getUnsignedShortFromBytes(msb, lsb);
     }
 
     public void setDestinationPort(int port) throws PacketException {
-        this.packet.getPcapPacket().setByteArray(14 + this.packet.getIPv4HeaderLength() + 2, DataTypeHelpers.getUnsignedShort(port));
+        this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 2, DataTypeHelpers.getUnsignedShort(port));
     }
 
     public int getLength() throws PacketException {
-        byte msb = this.packet.getPcapPacket().getByte(14 + this.packet.getIPv4HeaderLength() + 4);
-        byte lsb = this.packet.getPcapPacket().getByte(14 + this.packet.getIPv4HeaderLength() + 5);
+        byte msb = this.getPacket().getPcapPacket().getByte(14 + this.getPacket().getIPv4HeaderLength() + 4);
+        byte lsb = this.getPacket().getPcapPacket().getByte(14 + this.getPacket().getIPv4HeaderLength() + 5);
         return DataTypeHelpers.getUnsignedShortFromBytes(msb, lsb);
     }
 
     public void setLength(int length) throws PacketException {
-        this.packet.getPcapPacket().setByteArray(14 + this.packet.getIPv4HeaderLength() + 4, DataTypeHelpers.getUnsignedShort(length));
+        this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 4, DataTypeHelpers.getUnsignedShort(length));
     }
 
     public int getChecksum() throws PacketException {
-        byte msb = this.packet.getPcapPacket().getByte(14 + this.packet.getIPv4HeaderLength() + 6);
-        byte lsb = this.packet.getPcapPacket().getByte(14 + this.packet.getIPv4HeaderLength() + 7);
+        byte msb = this.getPacket().getPcapPacket().getByte(14 + this.getPacket().getIPv4HeaderLength() + 6);
+        byte lsb = this.getPacket().getPcapPacket().getByte(14 + this.getPacket().getIPv4HeaderLength() + 7);
         return DataTypeHelpers.getUnsignedShortFromBytes(msb, lsb);
     }
 
     public byte[] getData() throws PacketException {
-        return this.packet.getPcapPacket().getByteArray(14 + this.packet.getIPv4HeaderLength() + 8, this.packet.getPcapPacket().size() - (14 + this.packet.getIPv4HeaderLength() + 8));
+        return this.getPacket().getPcapPacket().getByteArray(14 + this.getPacket().getIPv4HeaderLength() + 8, this.getPacket().getPcapPacket().size() - (14 + this.getPacket().getIPv4HeaderLength() + 8));
     }
 
     public void setData(byte[] data) throws PacketException {
-        this.packet.getPcapPacket().setByteArray(14 + this.packet.getIPv4HeaderLength() + 8, data);
+        this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 8, data);
     }
 
     public void calculateICMPChecksum() throws PacketException {
-        this.packet.getPcapPacket().setByteArray(14 + this.packet.getIPv4HeaderLength() + 6, new byte[]{(byte) 0x00, (byte) 0x00});
-        byte[] udpHeaderAndData = this.packet.getPcapPacket().getByteArray(14 + this.packet.getIPv4HeaderLength(), 8 + this.getData().length);
+        this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 6, new byte[]{(byte) 0x00, (byte) 0x00});
+        byte[] udpHeaderAndData = this.getPacket().getPcapPacket().getByteArray(14 + this.getPacket().getIPv4HeaderLength(), 8 + this.getData().length);
         long crc = DataTypeHelpers.RFC1071Checksum(udpHeaderAndData, udpHeaderAndData.length);
-        this.packet.getPcapPacket().setByteArray(14 + this.packet.getIPv4HeaderLength() + 6, DataTypeHelpers.getUnsignedShort((int) crc));
+        this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 6, DataTypeHelpers.getUnsignedShort((int) crc));
+    }
+
+    public Packet getPacket() {
+        return packet;
     }
 }
