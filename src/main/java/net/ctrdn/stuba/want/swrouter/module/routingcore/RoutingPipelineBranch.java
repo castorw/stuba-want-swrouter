@@ -18,11 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RoutingPipelineBranch extends DefaultPipelineBranch {
-
+    
     private final Logger logger = LoggerFactory.getLogger(RoutingPipelineBranch.class);
     private final IPv4Prefix multicastPrefix;
     private final RoutingCoreModule routingCoreModule;
-
+    
     public RoutingPipelineBranch(RoutingCoreModule routingCoreModule) {
         this.routingCoreModule = routingCoreModule;
         try {
@@ -31,22 +31,22 @@ public class RoutingPipelineBranch extends DefaultPipelineBranch {
             throw new RuntimeException(ex);
         }
     }
-
+    
     @Override
     public String getName() {
         return "ROUTING";
     }
-
+    
     @Override
     public String getDescription() {
         return "Provides routing information required for packet forwarding";
     }
-
+    
     @Override
     public int getPriority() {
         return 2048;
     }
-
+    
     @Override
     public PipelineResult process(Packet packet) {
         if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.OUTPUT) && packet.getEthernetType() == EthernetType.IPV4) {
@@ -65,6 +65,7 @@ public class RoutingPipelineBranch extends DefaultPipelineBranch {
                         if (egressInterface != null) {
                             packet.setEgressNetworkInterface(egressInterface);
                             packet.setForwarderIPv4Address(nextHopAddress);
+                            packet.setProcessingChain(ProcessingChain.FORWARD);
                             return PipelineResult.CONTINUE;
                         } else {
                             this.logger.warn("No interface available for route {} for packet {}", route, packet.getPacketIdentifier().getUuid().toString());
@@ -86,7 +87,7 @@ public class RoutingPipelineBranch extends DefaultPipelineBranch {
         }
         return PipelineResult.CONTINUE;
     }
-
+    
     private NetworkInterface lookupInterface(IPv4Address address) {
         try {
             InterfaceManagerModule interfaceManagerModule = this.routingCoreModule.getRouterController().getModule(InterfaceManagerModule.class);
