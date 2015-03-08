@@ -39,15 +39,18 @@ public class NetworkInterfaceImpl implements NetworkInterface {
                         ProcessingChain chain = ProcessingChain.FORWARD;
                         Packet packet = new Packet(Receiver.this.networkInterface, pcapPacket);
                         if (packet.getEthernetType() == EthernetType.IPV4) {
-                            if (packet.getDestinationIPv4Address().equals(Receiver.this.networkInterface.getIPv4InterfaceAddress().getAddress())) {
-                                chain = ProcessingChain.INPUT;
+                            for (NetworkInterface iface : NetworkInterfaceImpl.this.routerController.getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
+                                if (iface.getIPv4InterfaceAddress() != null && packet.getDestinationIPv4Address().equals(iface.getIPv4InterfaceAddress().getAddress())) {
+                                    chain = ProcessingChain.INPUT;
+                                    break;
+                                }
                             }
                         } else if (packet.getDestinationHardwareAddress().equals(Receiver.this.networkInterface.getHardwareAddress()) || packet.getDestinationHardwareAddress().isBroadcast()) {
                             chain = ProcessingChain.INPUT;
                         }
                         packet.setProcessingChain(chain);
                         Receiver.this.networkInterface.routerController.getPacketProcessor().processPacket(packet);
-                    } catch (PacketException ex) {
+                    } catch (PacketException | NoSuchModuleException ex) {
                         Receiver.this.networkInterface.logger.warn("Failed to process incoming packet on interface {}", Receiver.this.networkInterface.getName(), ex);
                     }
                 }
@@ -205,6 +208,11 @@ public class NetworkInterfaceImpl implements NetworkInterface {
                 @Override
                 public IPv4RouteFlag[] getFlags() {
                     return new IPv4RouteFlag[]{this.connectedFlag};
+                }
+
+                @Override
+                public boolean isAvailable() {
+                    return true;
                 }
             };
 
