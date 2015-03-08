@@ -60,7 +60,7 @@ public class ARPPipelineBranch extends DefaultPipelineBranch {
             return PipelineResult.DROP;
         } else if (packet.getEthernetType() == EthernetType.IPV4) {
             try {
-                if (packet.getProcessingChain() == ProcessingChain.FORWARD && packet.getForwarderIPv4Address() != null && (packet.getForwarderHardwareAddress() == null || packet.getForwarderHardwareAddress().equals(MACAddress.ZERO))) {
+                if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.OUTPUT) && packet.getForwarderIPv4Address() != null && (packet.getForwarderHardwareAddress() == null || packet.getForwarderHardwareAddress().equals(MACAddress.ZERO))) {
                     ARPTableEntry arpTableEntry = this.resolveARPTableEntry(packet.getForwarderIPv4Address(), packet.getEgressNetworkInterface());
                     if (arpTableEntry.isComplete()) {
                         packet.setForwarderHardwareAddress(arpTableEntry.getHardwareAddress());
