@@ -81,4 +81,9 @@ public class StaticIPv4Route implements IPv4Route {
     protected void addGatewayAddress(IPv4Address address) {
         this.gatewayList.add(new RouteGateway(address));
     }
+
+    @Override
+    public boolean isAvailable() {
+        return true;
+    }
 }

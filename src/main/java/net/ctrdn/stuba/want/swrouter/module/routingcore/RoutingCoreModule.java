@@ -101,7 +101,7 @@ public class RoutingCoreModule extends DefaultRouterModule {
 
     protected IPv4Route lookupRoute(IPv4Address address) {
         for (IPv4Route route : this.routeList) {
-            if (route.getTargetPrefix().containsAddress(address)) {
+            if (route.getTargetPrefix().containsAddress(address) && route.isAvailable()) {
                 return route;
             }
         }

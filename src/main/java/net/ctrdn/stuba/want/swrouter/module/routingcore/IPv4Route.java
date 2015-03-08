@@ -1,7 +1,6 @@
 package net.ctrdn.stuba.want.swrouter.module.routingcore;
 
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
-import net.ctrdn.stuba.want.swrouter.exception.RoutingException;
 
 public interface IPv4Route {
 
@@ -38,4 +37,6 @@ public interface IPv4Route {
 
     @Override
     public String toString();
+
+    public boolean isAvailable();
 }
