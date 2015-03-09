@@ -27,6 +27,16 @@ public class IPv4Prefix {
         return (prefixAddressDec >> (32 - this.getNetworkMask().getLength()) == (addressDec >> (32 - this.getNetworkMask().getLength())));
     }
 
+    public boolean containsPrefix(IPv4Prefix prefix) {
+        if (this.getNetworkMask().getLength() > prefix.getNetworkMask().getLength()) {
+            return false;
+        }
+        int thisPrefixAddressDec = this.getAddress().getDecimal();
+        int otherPrefixAddressDec = this.getAddress().getDecimal();
+        int thisNetworkMathLength = this.getNetworkMask().getLength();
+        return (thisPrefixAddressDec >> (32 - thisNetworkMathLength)) == (otherPrefixAddressDec >> (32 - thisNetworkMathLength));
+    }
+
     @Override
     public String toString() {
         return this.getAddress().toString() + "/" + this.getNetworkMask().getLength();
