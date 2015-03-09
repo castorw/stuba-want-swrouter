@@ -1,5 +1,7 @@
 package net.ctrdn.stuba.want.swrouter.core.processing;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
@@ -64,10 +66,19 @@ public class UDPForIPv4PacketEncapsulation {
         this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 8, data);
     }
 
-    public void calculateICMPChecksum() throws PacketException {
-        this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 6, new byte[]{(byte) 0x00, (byte) 0x00});
-        byte[] udpHeaderAndData = this.getPacket().getPcapPacket().getByteArray(14 + this.getPacket().getIPv4HeaderLength(), 8 + this.getData().length);
-        long crc = DataTypeHelpers.RFC1071Checksum(udpHeaderAndData, udpHeaderAndData.length);
+    public void calculateUDPChecksum() throws PacketException, IOException {
+        ByteArrayOutputStream pseudoPacketBaos = new ByteArrayOutputStream(20 + this.getLength() - this.getHeaderLength());
+        pseudoPacketBaos.write(this.getPacket().getSourceIPv4Address().getBytes());
+        pseudoPacketBaos.write(this.getPacket().getDestinationIPv4Address().getBytes());
+        pseudoPacketBaos.write((byte) 0);
+        pseudoPacketBaos.write(this.getPacket().getIPv4Protocol().getCode());
+        pseudoPacketBaos.write(DataTypeHelpers.getUnsignedShort(this.getLength()));
+        pseudoPacketBaos.write(DataTypeHelpers.getUnsignedShort(this.getSourcePort()));
+        pseudoPacketBaos.write(DataTypeHelpers.getUnsignedShort(this.getDestinationPort()));
+        pseudoPacketBaos.write(DataTypeHelpers.getUnsignedShort(this.getLength()));
+        pseudoPacketBaos.write(DataTypeHelpers.getUnsignedShort(0));
+        pseudoPacketBaos.write(this.getData());
+        long crc = DataTypeHelpers.RFC1071Checksum(pseudoPacketBaos.toByteArray(), pseudoPacketBaos.size());
         this.getPacket().getPcapPacket().setByteArray(14 + this.getPacket().getIPv4HeaderLength() + 6, DataTypeHelpers.getUnsignedShort((int) crc));
     }
 
