@@ -1,6 +1,5 @@
 package net.ctrdn.stuba.want.swrouter.module.routingripv2;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,14 +25,12 @@ import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.UDPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
-import net.ctrdn.stuba.want.swrouter.exception.InvalidRIPVersionException;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import net.ctrdn.stuba.want.swrouter.exception.RIPv2Exception;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.InterfaceManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
-import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4Route;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.RoutingCoreModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,7 +103,10 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
                             }
                         }
                     }
-                    if (this.lastUpdateTransmitDate == null || new Date().getTime() - this.lastUpdateTransmitDate.getTime() > this.rm.getUpdateInterval()) {
+                    if (this.lastUpdateTransmitDate == null) {
+                        this.rm.sendMulticastRequest();
+                        this.lastUpdateTransmitDate = new Date();
+                    } else if (new Date().getTime() - this.lastUpdateTransmitDate.getTime() > this.rm.getUpdateInterval()) {
                         this.rm.sendMulticastResponse();
                         this.lastUpdateTransmitDate = new Date();
                     }
@@ -312,6 +312,40 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
     }
 
     private void sendMulticastRequest() {
+        this.logger.debug("Requesting RIPv2 data on all interfaces");
+        try {
+            for (NetworkInterface iface : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
+                if (this.interfaceConfigurationMap.containsKey(iface) && iface.getIPv4InterfaceAddress() != null) {
+                    Packet packet = new Packet(14 + 20 + 8 + 4 + 20, iface);
+                    packet.setDestinationHardwareAddress(this.getRIPv2MulticastMACAddress());
+                    packet.setEthernetType(EthernetType.IPV4);
+                    packet.defaultIPv4Setup();
+                    packet.setDestinationIPv4Address(this.getRIPv2MulticastIPv4Address());
+                    packet.setSourceIPv4Address(iface.getIPv4InterfaceAddress().getAddress());
+                    packet.setIPv4Protocol(IPv4Protocol.UDP);
+                    packet.setIPv4TimeToLive((short) 1);
+                    packet.setIPv4TotalLength(packet.getIPv4HeaderLength() + 8 + 4 + 20);
+
+                    UDPForIPv4PacketEncapsulation udpEncap = new UDPForIPv4PacketEncapsulation(packet);
+                    udpEncap.setSourcePort(520);
+                    udpEncap.setDestinationPort(520);
+                    udpEncap.setLength(udpEncap.getHeaderLength() + 4 + 20);
+
+                    RIPv2PacketEncapsulation ripEncap = new RIPv2PacketEncapsulation(udpEncap, true);
+                    ripEncap.setCommand((short) 1);
+                    ripEncap.setRequestWholeTable();
+                    udpEncap.calculateUDPChecksum();
+                    packet.calculateIPv4Checksum();
+
+                    this.logger.debug("Transmitting RIPv2 full table request over interface {}", iface.getName());
+                    this.getRouterController().getPacketProcessor().processPacket(packet);
+                }
+            }
+        } catch (NoSuchModuleException ex) {
+            throw new RuntimeException(ex);
+        } catch (PacketException | RIPv2Exception | IOException ex) {
+            this.logger.warn("Failed to send RIPv2 request", ex);
+        }
     }
 
     private void sendMulticastResponse() {

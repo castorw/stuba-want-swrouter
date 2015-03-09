@@ -1,6 +1,7 @@
 package net.ctrdn.stuba.want.swrouter.module.routingripv2;
 
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
+import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.core.processing.DefaultPipelineBranch;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.PipelineResult;
@@ -38,7 +39,15 @@ public class RIPv2PipelineBranch extends DefaultPipelineBranch {
     @Override
     public PipelineResult process(Packet packet) {
         try {
-            if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.INPUT) && packet.getEthernetType() == EthernetType.IPV4 && packet.getDestinationIPv4Address().equals(this.routingModule.getRIPv2MulticastIPv4Address())) {
+            if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.INPUT) && packet.getEthernetType() == EthernetType.IPV4 && (packet.getDestinationIPv4Address().equals(this.routingModule.getRIPv2MulticastIPv4Address()) || packet.getDestinationIPv4Address().equals(packet.getIngressNetworkInterface().getIPv4InterfaceAddress().getAddress()))) {
+                if (packet.getIPv4Protocol() == IPv4Protocol.UDP) {
+                    UDPForIPv4PacketEncapsulation udpEncap = new UDPForIPv4PacketEncapsulation(packet);
+                    if (udpEncap.getDestinationPort() != 520) {
+                        return PipelineResult.CONTINUE;
+                    }
+                } else {
+                    return PipelineResult.CONTINUE;
+                }
                 RIPv2NetworkInterfaceConfiguration interfaceConfiguration = this.routingModule.getNetworkInterfaceConfiguration(packet.getIngressNetworkInterface());
                 if (interfaceConfiguration.isEnabled()) {
                     this.processRIPPacket(packet);

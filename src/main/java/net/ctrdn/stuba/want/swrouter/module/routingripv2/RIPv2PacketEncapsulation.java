@@ -68,6 +68,10 @@ final public class RIPv2PacketEncapsulation {
         }
     }
 
+    public void setRequestWholeTable() throws PacketException {
+        this.udpEncapsulation.getPacket().getPcapPacket().setByteArray(this.getOffset(4), DataTypeHelpers.hexStringToByteArray("0000000000000000000000000000000000000010"));
+    }
+
     private int getOffset(int offset) throws PacketException {
         return 14 + this.udpEncapsulation.getPacket().getIPv4HeaderLength() + this.udpEncapsulation.getHeaderLength() + offset;
     }
