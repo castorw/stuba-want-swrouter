@@ -1,11 +1,13 @@
 package net.ctrdn.stuba.want.swrouter.module.interfacemanager;
 
 import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
+import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.core.processing.DefaultPipelineBranch;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.PipelineResult;
 import net.ctrdn.stuba.want.swrouter.core.processing.ProcessingChain;
+import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,16 +32,20 @@ public class PacketOutputPipelineBranch extends DefaultPipelineBranch {
 
     @Override
     public PipelineResult process(Packet packet) {
-        if (packet.getProcessingChain() == ProcessingChain.OUTPUT) {
-            if (packet.getDestinationHardwareAddress() != MACAddress.ZERO && packet.getEgressNetworkInterface() != null) {
-                this.logger.trace("Transmitting OUTPUT packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPcapPacket().getByteArray(0, packet.getPcapPacket().size()), true));
-                packet.getEgressNetworkInterface().sendPacket(packet);
-                this.logger.debug("Transmitted packet {} over network interface {}", packet.getPacketIdentifier().getUuid().toString(), packet.getEgressNetworkInterface().getName());
-                return PipelineResult.HANDLED;
-            } else {
-                this.logger.warn("Packet {} has no destination hardware address or egress interface", packet.getDestinationHardwareAddress());
-                return PipelineResult.DROP;
+        try {
+            if (packet.getProcessingChain() == ProcessingChain.OUTPUT && (packet.getEthernetType() != EthernetType.IPV4 || packet.getForwarderIPv4Address() == null)) {
+                if (packet.getDestinationHardwareAddress() != MACAddress.ZERO && packet.getEgressNetworkInterface() != null) {
+                    this.logger.trace("Transmitting OUTPUT packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPcapPacket().getByteArray(0, packet.getPcapPacket().size()), true));
+                    packet.getEgressNetworkInterface().sendPacket(packet);
+                    this.logger.debug("Transmitted packet {} over network interface {}", packet.getPacketIdentifier().getUuid().toString(), packet.getEgressNetworkInterface().getName());
+                    return PipelineResult.HANDLED;
+                } else {
+                    this.logger.warn("Packet {} has no destination hardware address or egress interface", packet.getDestinationHardwareAddress());
+                    return PipelineResult.DROP;
+                }
             }
+        } catch (PacketException ex) {
+            this.logger.warn("Problem processing output packet {}", packet.getPacketIdentifier().getUuid().toString(), ex);
         }
         return PipelineResult.CONTINUE;
     }
