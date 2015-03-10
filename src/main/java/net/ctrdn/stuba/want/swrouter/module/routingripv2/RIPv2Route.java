@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
@@ -48,10 +49,10 @@ final public class RIPv2Route implements IPv4Route {
 
     private final Logger logger = LoggerFactory.getLogger(RIPv2Route.class);
     private final IPv4Prefix targetPrefix;
-    private final List<RIPv2RouteEntry> routeEntryList = Collections.synchronizedList(new ArrayList<RIPv2RouteEntry>());
+    private final List<RIPv2RouteEntry> routeEntryList = Collections.synchronizedList(new CopyOnWriteArrayList<RIPv2RouteEntry>());
     private RouteGateway[] activeGateways = new RouteGateway[0];
     private int nextGatewayIndex = 0;
-    private final IPv4RouteFlag ripFlag = new IPv4RouteFlag("r", "RIPv2", "Route learned through RIPv2");
+    private final IPv4RouteFlag ripFlag = new IPv4RouteFlag("r", "RIPv2", "Route learned through RIPv2 protocol");
 
     protected RIPv2Route(RIPv2RouteEntry initialRouteEntry) {
         this.targetPrefix = initialRouteEntry.getTargetPrefix();
@@ -64,7 +65,8 @@ final public class RIPv2Route implements IPv4Route {
     }
 
     protected void calculateActiveGateways() {
-        Collections.sort(this.routeEntryList, new Comparator<RIPv2RouteEntry>() {
+        List<RIPv2RouteEntry> orderedEntryList = new ArrayList<>(this.routeEntryList);
+        Collections.sort(orderedEntryList, new Comparator<RIPv2RouteEntry>() {
 
             @Override
             public int compare(RIPv2RouteEntry o1, RIPv2RouteEntry o2) {
@@ -73,21 +75,32 @@ final public class RIPv2Route implements IPv4Route {
         });
         List<RouteGateway> gwList = new ArrayList<>();
         int bestMetric;
-        if (this.routeEntryList.size() > 0) {
-            bestMetric = this.routeEntryList.get(0).getMetric();
+        if (orderedEntryList.size() > 0) {
+            bestMetric = orderedEntryList.get(0).getMetric();
         } else {
             bestMetric = 16;
         }
         if (bestMetric < 16) {
-            for (RIPv2RouteEntry entry2 : this.routeEntryList) {
+            for (RIPv2RouteEntry entry2 : orderedEntryList) {
                 if (entry2.getMetric() == bestMetric) {
                     gwList.add(new RouteGateway(entry2));
                 }
             }
             this.activeGateways = gwList.toArray(new RouteGateway[gwList.size()]);
             this.nextGatewayIndex = 0;
+
+            String prefixString = "";
+            for (RouteGateway gw : this.activeGateways) {
+                if (!prefixString.isEmpty()) {
+                    prefixString += ", ";
+                }
+                prefixString += gw.getGatewayAddress();
+            }
+
+            this.logger.info("Adjacency changed: Prefix {} is now available via {}", this.getTargetPrefix(), prefixString);
         } else {
             this.activeGateways = new RouteGateway[0];
+            this.logger.info("Adjacency changed: No routes to destination prefix {}", this.getTargetPrefix());
         }
     }
 
