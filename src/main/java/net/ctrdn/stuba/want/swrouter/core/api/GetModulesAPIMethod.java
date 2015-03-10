@@ -28,6 +28,7 @@ public class GetModulesAPIMethod extends DefaultAPIMethod {
                 moduleJob.add("Classpath", moduleClass.getName());
                 moduleJob.add("Name", module.getName());
                 moduleJob.add("Revision", module.getRevision());
+                moduleJob.add("LoadPriority", module.getLoadPriority());
                 modulesJab.add(moduleJob);
             }
             responseJob.add("Modules", modulesJab);
