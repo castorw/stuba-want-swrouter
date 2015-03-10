@@ -1,4 +1,4 @@
-package net.ctrdn.stuba.want.swrouter.api.core;
+package net.ctrdn.stuba.want.swrouter.core.api;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;

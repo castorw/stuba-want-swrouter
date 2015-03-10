@@ -1,4 +1,4 @@
-package net.ctrdn.stuba.want.swrouter.api.core;
+package net.ctrdn.stuba.want.swrouter.core.api;
 
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;
@@ -8,16 +8,16 @@ import net.ctrdn.stuba.want.swrouter.api.DefaultAPIMethod;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.APIMethodException;
 
-public class GetRunningConfigurationAPIMethod extends DefaultAPIMethod {
+public class GetStartupConfigurationAPIMethod extends DefaultAPIMethod {
 
-    public GetRunningConfigurationAPIMethod(RouterController routerController) {
-        super(routerController, "get-running-configuration");
+    public GetStartupConfigurationAPIMethod(RouterController routerController) {
+        super(routerController, "get-startup-configuration");
     }
 
     @Override
     public JsonObjectBuilder execute(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
         JsonObjectBuilder responseJob = Json.createObjectBuilder();
-        responseJob.add("RunningConfiguration", this.getRouterController().getRunningConfiguration());
+        responseJob.add("StartupConfiguration", this.getRouterController().getStartupConfiguration());
         return responseJob;
     }
 

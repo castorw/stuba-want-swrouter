@@ -1,4 +1,4 @@
-package net.ctrdn.stuba.want.swrouter.api.core;
+package net.ctrdn.stuba.want.swrouter.core.api;
 
 import java.util.Date;
 import javax.json.Json;
