@@ -3,8 +3,6 @@ package net.ctrdn.stuba.want.swrouter.module.routingcore;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
-import net.ctrdn.stuba.want.swrouter.common.net.IPv4NetworkMask;
-import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.processing.DefaultPipelineBranch;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.PipelineResult;
@@ -20,16 +18,10 @@ import org.slf4j.LoggerFactory;
 public class RoutingPipelineBranch extends DefaultPipelineBranch {
 
     private final Logger logger = LoggerFactory.getLogger(RoutingPipelineBranch.class);
-    private final IPv4Prefix multicastPrefix;
     private final RoutingCoreModule routingCoreModule;
 
     public RoutingPipelineBranch(RoutingCoreModule routingCoreModule) {
         this.routingCoreModule = routingCoreModule;
-        try {
-            this.multicastPrefix = new IPv4Prefix(IPv4Address.fromString("224.0.0.0"), new IPv4NetworkMask(4));
-        } catch (IPv4MathException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
     @Override
@@ -51,9 +43,22 @@ public class RoutingPipelineBranch extends DefaultPipelineBranch {
     public PipelineResult process(Packet packet) {
         if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.OUTPUT) && packet.getEthernetType() == EthernetType.IPV4) {
             try {
-                if (this.multicastPrefix.containsAddress(packet.getDestinationIPv4Address())) {
-                    this.logger.debug("Not making routing decisions on packet {} with multicast destination {}", packet.getPacketIdentifier().getUuid().toString(), packet.getDestinationIPv4Address());
-                    return PipelineResult.CONTINUE;
+                if (this.routingCoreModule.getMulticastPrefix().containsAddress(packet.getDestinationIPv4Address())) {
+                    if (packet.getProcessingChain() == ProcessingChain.FORWARD) {
+                        this.logger.debug("Not making routing decisions on forwarded packet {} with multicast destination {}", packet.getPacketIdentifier().getUuid().toString(), packet.getDestinationIPv4Address());
+                        return PipelineResult.CONTINUE;
+                    } else {
+                        try {
+                            if (packet.getDestinationHardwareAddress().equals(MACAddress.ZERO) || packet.getDestinationHardwareAddress() == null) {
+                                packet.setDestinationHardwareAddress(packet.getDestinationIPv4Address().getMulticastMACAddress());
+                                this.logger.debug("Attached multicast hardware address {} for destination {} in {} packet {}", packet.getDestinationHardwareAddress(), packet.getDestinationIPv4Address(), packet.getProcessingChain(), packet.getPacketIdentifier().getUuid().toString());
+                            }
+                            return PipelineResult.CONTINUE;
+                        } catch (IPv4MathException ex) {
+                            this.logger.warn("Multicast hardware address attachment failed for packet {}", packet.getPacketIdentifier().getUuid().toString());
+                            return PipelineResult.DROP;
+                        }
+                    }
                 }
                 IPv4Route route = this.routingCoreModule.lookupRoute(packet.getDestinationIPv4Address());
                 if (route != null) {

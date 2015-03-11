@@ -7,6 +7,7 @@ import java.util.List;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.DefaultRouterModule;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
@@ -110,5 +111,9 @@ public class RoutingCoreModule extends DefaultRouterModule {
 
     protected RouterController getRouterController() {
         return this.routerController;
+    }
+
+    public IPv4Prefix getMulticastPrefix() {
+        return IPv4Prefix.MULTICAST;
     }
 }
