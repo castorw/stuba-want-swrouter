@@ -17,7 +17,7 @@ public class RIPv2RouteEntry {
     private final int routeTag;
     private final IPv4Prefix targetPrefix;
     private final IPv4Address nextHopAddress;
-    private final int metric;
+    private int metric;
     private Date lastUpdateDate;
     private final IPv4Address senderAddress;
     private RIPv2RouteEntryState lastState;
@@ -49,11 +49,7 @@ public class RIPv2RouteEntry {
         this.lastUpdateDate = new Date();
         this.senderAddress = senderAddress;
         this.nextHopAddress = nextHopAddress;
-        if (this.metric == 16 && this.addressFamilyIdentifier == 0) {
-            this.fullTableRequest = true;
-        } else {
-            this.fullTableRequest = false;
-        }
+        this.fullTableRequest = this.metric == 16 && this.addressFamilyIdentifier == 0;
     }
 
     public int getRouteTag() {
@@ -103,10 +99,7 @@ public class RIPv2RouteEntry {
         hash = 61 * hash + this.routeTag;
         hash = 61 * hash + Objects.hashCode(this.targetPrefix);
         hash = 61 * hash + Objects.hashCode(this.nextHopAddress);
-        hash = 61 * hash + this.metric;
-        hash = 61 * hash + Objects.hashCode(this.lastUpdateDate);
         hash = 61 * hash + Objects.hashCode(this.senderAddress);
-        hash = 61 * hash + Objects.hashCode(this.lastState);
         return hash;
     }
 
@@ -116,6 +109,8 @@ public class RIPv2RouteEntry {
 
     public void onUpdateReceived(RIPv2RouteEntry updateEntry) {
         this.lastUpdateDate = updateEntry.getLastUpdateDate();
+        this.metric = updateEntry.getMetric();
+        this.setLastState(RIPv2RouteEntryState.HOLD_DOWN);
     }
 
     protected RIPv2RouteEntryState getLastState() {

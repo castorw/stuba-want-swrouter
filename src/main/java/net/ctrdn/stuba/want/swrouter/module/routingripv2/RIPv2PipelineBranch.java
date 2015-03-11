@@ -1,7 +1,11 @@
 package net.ctrdn.stuba.want.swrouter.module.routingripv2;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
+import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.processing.DefaultPipelineBranch;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.PipelineResult;
@@ -74,15 +78,21 @@ public class RIPv2PipelineBranch extends DefaultPipelineBranch {
             } else {
                 this.logger.debug("Received RIPv2 Request from {}", packet.getSourceIPv4Address());
                 RIPv2RouteEntry[] entries = ripEncap.getRouteEntries();
-                if (entries.length == 1) {
-                    RIPv2RouteEntry entry = entries[0];
-                    if (entry.isFullTableRequest()) {
-                        this.routingModule.processRouteEntry(entry);
+                if (entries.length > 0) {
+                    RIPv2RouteEntry firstEntry = entries[0];
+                    if (entries.length == 1 && firstEntry.isFullTableRequest()) {
+                        this.routingModule.sendResponse(packet.getIngressNetworkInterface(), packet.getSourceIPv4Address());
+                    } else {
+                        Set<IPv4Prefix> includePrefixes = new HashSet<>();
+                        for (RIPv2RouteEntry re : entries) {
+                            includePrefixes.add(re.getTargetPrefix());
+                        }
+                        List<RIPv2RouteEntry> outputEntryList = this.routingModule.buildEntryList(packet.getIngressNetworkInterface(), includePrefixes);
+                        this.routingModule.sendResponse(packet.getIngressNetworkInterface(), packet.getSourceIPv4Address(), outputEntryList);
                     }
                 }
-                throw new UnsupportedOperationException("RIPv2 specific route entry update not supported");
             }
-        } catch (PacketException ex) {
+        } catch (PacketException | IPv4MathException ex) {
             this.logger.warn("Failed processing RIP packet", ex);
         } catch (RIPv2Exception ex) {
             this.logger.info("Received unspported RIP packet from {} at interface {}", packet.getSourceIPv4Address(), packet.getIngressNetworkInterface().getName(), ex);
