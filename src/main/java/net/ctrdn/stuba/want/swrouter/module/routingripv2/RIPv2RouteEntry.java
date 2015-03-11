@@ -13,6 +13,7 @@ import net.ctrdn.stuba.want.swrouter.exception.RIPv2Exception;
 
 public class RIPv2RouteEntry {
 
+    private final int addressFamilyIdentifier;
     private final int routeTag;
     private final IPv4Prefix targetPrefix;
     private final IPv4Address nextHopAddress;
@@ -20,32 +21,39 @@ public class RIPv2RouteEntry {
     private Date lastUpdateDate;
     private final IPv4Address senderAddress;
     private RIPv2RouteEntryState lastState;
+    private final boolean fullTableRequest;
 
     protected final static RIPv2RouteEntry fromBytes(IPv4Address senderAddress, byte[] data, int offset) throws RIPv2Exception {
         try {
             int addressFamily = DataTypeHelpers.getUnsignedShortFromBytes(data[offset + 0], data[offset + 1]);
-            if (addressFamily != 2) {
-                throw new RIPv2Exception("Unsupported RIPv2 AFI " + addressFamily);
-            }
             int routeTag = DataTypeHelpers.getUnsignedShortFromBytes(data[offset + 2], data[offset + 3]);
             int metric = DataTypeHelpers.getUnsignedShortFromBytes(data[offset + 18], data[offset + 19]);
             IPv4Address prefixAddress = new IPv4Address(new byte[]{data[offset + 4], data[offset + 5], data[offset + 6], data[offset + 7]});
             IPv4NetworkMask prefixNetworkMask = IPv4NetworkMask.fromBytes(new byte[]{data[offset + 8], data[offset + 9], data[offset + 10], data[offset + 11]});
             IPv4Address nextHopAddress = new IPv4Address(new byte[]{data[offset + 12], data[offset + 13], data[offset + 14], data[offset + 15]});
             IPv4Prefix prefix = new IPv4Prefix(prefixAddress, prefixNetworkMask);
-            return new RIPv2RouteEntry(senderAddress, routeTag, prefix, nextHopAddress, metric);
+            if (addressFamily != 2 && (addressFamily != 0 && metric != 16)) {
+                throw new RIPv2Exception("Unsupported RIPv2 AFI " + addressFamily);
+            }
+            return new RIPv2RouteEntry(addressFamily, senderAddress, routeTag, prefix, nextHopAddress, metric);
         } catch (IPv4MathException ex) {
             throw new RIPv2Exception("Failed to construct RIPv2 FIB entry", ex);
         }
     }
 
-    public RIPv2RouteEntry(IPv4Address senderAddress, int routeTag, IPv4Prefix targetPrefix, IPv4Address nextHopAddress, int metric) throws IPv4MathException {
+    public RIPv2RouteEntry(int addressFamilyIdentifier, IPv4Address senderAddress, int routeTag, IPv4Prefix targetPrefix, IPv4Address nextHopAddress, int metric) throws IPv4MathException {
+        this.addressFamilyIdentifier = addressFamilyIdentifier;
         this.routeTag = routeTag;
         this.targetPrefix = targetPrefix;
         this.metric = metric;
         this.lastUpdateDate = new Date();
         this.senderAddress = senderAddress;
         this.nextHopAddress = nextHopAddress;
+        if (this.metric == 16 && this.addressFamilyIdentifier == 0) {
+            this.fullTableRequest = true;
+        } else {
+            this.fullTableRequest = false;
+        }
     }
 
     public int getRouteTag() {
@@ -129,5 +137,9 @@ public class RIPv2RouteEntry {
         baos.write((byte) 0);
         baos.write(DataTypeHelpers.getUnsignedShort(this.metric));
         return baos.toByteArray();
+    }
+
+    public boolean isFullTableRequest() {
+        return fullTableRequest;
     }
 }

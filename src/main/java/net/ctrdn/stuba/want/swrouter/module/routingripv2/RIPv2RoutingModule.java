@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -25,6 +26,7 @@ import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.UDPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
+import net.ctrdn.stuba.want.swrouter.exception.InvalidRIPVersionException;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
@@ -58,8 +60,12 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
                                 }
                             }
                             if (route == null) {
-                                route = new RIPv2Route(entry);
-                                this.rm.installRoute(route);
+                                if (entry.getMetric() >= 16) {
+                                    RIPv2RoutingModule.this.logger.info("Not creating route from poisoned route entry {} received from {}", entry.getTargetPrefix(), entry.getSenderAddress());
+                                } else {
+                                    route = new RIPv2Route(entry);
+                                    this.rm.installRoute(route);
+                                }
                             } else {
                                 route.newRouteEntryReceived(entry);
                             }
@@ -104,11 +110,19 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
                         }
                     }
                     if (this.lastUpdateTransmitDate == null) {
-                        this.rm.sendMulticastRequest();
-                        this.lastUpdateTransmitDate = new Date();
+                        try {
+                            this.rm.sendMulticastRequest();
+                            this.lastUpdateTransmitDate = new Date();
+                        } catch (RIPv2Exception ex) {
+                            RIPv2RoutingModule.this.logger.warn("Failed sending all-interface multicast request", ex);
+                        }
                     } else if (new Date().getTime() - this.lastUpdateTransmitDate.getTime() > this.rm.getUpdateInterval()) {
-                        this.rm.sendMulticastResponse();
-                        this.lastUpdateTransmitDate = new Date();
+                        try {
+                            this.rm.sendMulticastResponse();
+                            this.lastUpdateTransmitDate = new Date();
+                        } catch (RIPv2Exception ex) {
+                            RIPv2RoutingModule.this.logger.warn("Failed sending all-interface multicast response", ex);
+                        }
                     }
                     Thread.sleep(500);
                 }
@@ -121,13 +135,12 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
 
     private final Logger logger = LoggerFactory.getLogger(RIPv2RoutingModule.class);
     private final IPv4Address RIPv2MulticastIPv4Address;
-    private final MACAddress RIPv2MulticastMACAddress;
     private final RIPv2PipelineBranch pipelineBranch;
     private final Map<NetworkInterface, RIPv2NetworkInterfaceConfiguration> interfaceConfigurationMap = new ConcurrentHashMap<>();
     private final Queue<RIPv2RouteEntry> receivedRouteEntryQueue = new ConcurrentLinkedQueue<>();
-    private final List<RIPv2RouteEntry> installedRouteEntryList = new ArrayList<>();
-    private final List<RIPv2Route> installedRouteList = new ArrayList<>();
-    private final List<IPv4Prefix> networkPrefixList = new ArrayList<>();
+    private final List<RIPv2RouteEntry> installedRouteEntryList = new CopyOnWriteArrayList<>();
+    private final List<RIPv2Route> installedRouteList = new CopyOnWriteArrayList<>();
+    private final List<IPv4Prefix> networkPrefixList = new CopyOnWriteArrayList<>();
     private final RouteWatchdog watchdog = new RouteWatchdog();
     private Thread watchdogThread;
     private int updateInterval = 30000;
@@ -138,7 +151,6 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
         super(controller);
         try {
             this.RIPv2MulticastIPv4Address = IPv4Address.fromString("224.0.0.9");
-            this.RIPv2MulticastMACAddress = MACAddress.fromString("01:00:5e:00:00:09");
             this.pipelineBranch = new RIPv2PipelineBranch(this);
         } catch (IPv4MathException ex) {
             throw new RuntimeException(ex);
@@ -288,10 +300,6 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
         return RIPv2MulticastIPv4Address;
     }
 
-    public MACAddress getRIPv2MulticastMACAddress() {
-        return RIPv2MulticastMACAddress;
-    }
-
     public RIPv2NetworkInterfaceConfiguration getNetworkInterfaceConfiguration(NetworkInterface networkInterface) {
         if (this.interfaceConfigurationMap.containsKey(networkInterface)) {
             return this.interfaceConfigurationMap.get(networkInterface);
@@ -311,17 +319,16 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
         return flushTimeout;
     }
 
-    private void sendMulticastRequest() {
-        this.logger.debug("Requesting RIPv2 data on all interfaces");
+    private void sendRequest(NetworkInterface egressInterface, IPv4Address targetAddress) throws RIPv2Exception {
         try {
-            for (NetworkInterface iface : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
-                if (this.interfaceConfigurationMap.containsKey(iface) && iface.getIPv4InterfaceAddress() != null) {
-                    Packet packet = new Packet(14 + 20 + 8 + 4 + 20, iface);
-                    packet.setDestinationHardwareAddress(this.getRIPv2MulticastMACAddress());
+            if (this.interfaceConfigurationMap.containsKey(egressInterface) && egressInterface.getIPv4InterfaceAddress() != null) {
+                if (this.interfaceConfigurationMap.get(egressInterface).isEnabled()) {
+                    Packet packet = new Packet(14 + 20 + 8 + 4 + 20, egressInterface);
+                    packet.setDestinationHardwareAddress(MACAddress.ZERO);
                     packet.setEthernetType(EthernetType.IPV4);
                     packet.defaultIPv4Setup();
-                    packet.setDestinationIPv4Address(this.getRIPv2MulticastIPv4Address());
-                    packet.setSourceIPv4Address(iface.getIPv4InterfaceAddress().getAddress());
+                    packet.setDestinationIPv4Address(targetAddress == null ? this.getRIPv2MulticastIPv4Address() : targetAddress);
+                    packet.setSourceIPv4Address(egressInterface.getIPv4InterfaceAddress().getAddress());
                     packet.setIPv4Protocol(IPv4Protocol.UDP);
                     packet.setIPv4TimeToLive((short) 1);
                     packet.setIPv4TotalLength(packet.getIPv4HeaderLength() + 8 + 4 + 20);
@@ -337,76 +344,143 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
                     udpEncap.calculateUDPChecksum();
                     packet.calculateIPv4Checksum();
 
-                    this.logger.debug("Transmitting RIPv2 full table request over interface {}", iface.getName());
+                    this.logger.debug("Transmitting RIPv2 full table request over interface {}", egressInterface.getName());
                     this.getRouterController().getPacketProcessor().processPacket(packet);
+                } else {
+                    throw new RIPv2Exception("Cannot transmit RIPv2 message over RIPv2-disabled interface");
+                }
+            } else {
+                throw new RIPv2Exception("RIPv2 configuration unavailable for interface " + egressInterface.getName());
+            }
+        } catch (IOException | PacketException ex) {
+            throw new RIPv2Exception("Failed building RIPv2 request", ex);
+        }
+    }
+
+    private void sendMulticastRequest(NetworkInterface egressInterface) throws RIPv2Exception {
+        this.sendRequest(egressInterface, null);
+    }
+
+    private void sendMulticastRequest() throws RIPv2Exception {
+        this.logger.debug("Requesting RIPv2 data on all interfaces");
+        try {
+            for (NetworkInterface iface : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
+                if (this.interfaceConfigurationMap.containsKey(iface) && iface.getIPv4InterfaceAddress() != null) {
+                    if (this.interfaceConfigurationMap.get(iface).isEnabled()) {
+                        this.sendMulticastRequest(iface);
+                    }
                 }
             }
         } catch (NoSuchModuleException ex) {
             throw new RuntimeException(ex);
-        } catch (PacketException | RIPv2Exception | IOException ex) {
-            this.logger.warn("Failed to send RIPv2 request", ex);
         }
     }
 
-    private void sendMulticastResponse() {
+    private List<RIPv2RouteEntry> buildEntryList(NetworkInterface ignoredInterface) throws IPv4MathException {
+        try {
+            List<RIPv2RouteEntry> outputEntryList = new ArrayList<>();
+            List<IPv4Prefix> addedPrefixes = new ArrayList<>();
+
+            for (IPv4Prefix netPrefix : this.networkPrefixList) {
+                for (NetworkInterface iface2 : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
+                    if (ignoredInterface != iface2 && iface2.getIPv4InterfaceAddress() != null && !addedPrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
+                        outputEntryList.add(new RIPv2RouteEntry(2, iface2.getIPv4InterfaceAddress().getAddress(), 0, iface2.getIPv4InterfaceAddress().getPrefix(), IPv4Address.fromString("0.0.0.0"), 1));
+                        addedPrefixes.add(iface2.getIPv4InterfaceAddress().getPrefix());
+                    }
+                }
+                for (RIPv2Route ripRoute : this.installedRouteList) {
+                    if (netPrefix.containsPrefix(ripRoute.getTargetPrefix()) && !ripRoute.getTargetPrefix().equals(ignoredInterface.getIPv4InterfaceAddress().getPrefix()) && !addedPrefixes.contains(ripRoute.getTargetPrefix())) {
+                        if (ripRoute.getBestMetric() < 15) {
+                            outputEntryList.add(new RIPv2RouteEntry(2, ignoredInterface.getIPv4InterfaceAddress().getAddress(), 0, ripRoute.getTargetPrefix(), IPv4Address.fromString("0.0.0.0"), ripRoute.getBestMetric() + 1));
+                            addedPrefixes.add(ripRoute.getTargetPrefix());
+                        }
+                    }
+                }
+            }
+            return outputEntryList;
+        } catch (NoSuchModuleException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private List<RIPv2PacketEncapsulation> buildResponse(NetworkInterface egressInterface, IPv4Address targetAddress, List<RIPv2RouteEntry> entries) throws RIPv2Exception {
+        try {
+            List<RIPv2PacketEncapsulation> encapList = new ArrayList<>();
+            int packetCount = (int) Math.ceil((double) (entries.size() / 25.0f));
+            for (int packetIndex = 0; packetIndex < packetCount; packetIndex++) {
+                int packetOutputEntryCount = entries.size() - (packetIndex * 25);
+                Packet packet = new Packet(14 + 20 + 8 + 4 + packetOutputEntryCount * 20, egressInterface);
+                packet.setDestinationHardwareAddress(MACAddress.ZERO);
+                packet.setEthernetType(EthernetType.IPV4);
+                packet.defaultIPv4Setup();
+                packet.setDestinationIPv4Address(targetAddress == null ? this.getRIPv2MulticastIPv4Address() : targetAddress);
+                packet.setSourceIPv4Address(egressInterface.getIPv4InterfaceAddress().getAddress());
+                packet.setIPv4Protocol(IPv4Protocol.UDP);
+                packet.setIPv4TimeToLive((short) 1);
+                packet.setIPv4TotalLength(packet.getIPv4HeaderLength() + 8 + 4 + packetOutputEntryCount * 20);
+
+                UDPForIPv4PacketEncapsulation udpEncap = new UDPForIPv4PacketEncapsulation(packet);
+                udpEncap.setSourcePort(520);
+                udpEncap.setDestinationPort(520);
+                udpEncap.setLength(udpEncap.getHeaderLength() + 4 + packetOutputEntryCount * 20);
+
+                RIPv2PacketEncapsulation ripEncap = new RIPv2PacketEncapsulation(udpEncap, true);
+                ripEncap.setCommand((short) 2);
+                ripEncap.setRouteEntries(entries.toArray(new RIPv2RouteEntry[entries.size()]));
+                udpEncap.calculateUDPChecksum();
+                packet.calculateIPv4Checksum();
+                encapList.add(ripEncap);
+            }
+            return encapList;
+        } catch (IOException | PacketException | RIPv2Exception ex) {
+            throw new RIPv2Exception("Failed to construct RIPv2 response", ex);
+        }
+    }
+
+    private void sendResponse(NetworkInterface egressInterface, IPv4Address targetAddress, List<RIPv2RouteEntry> entries) throws RIPv2Exception {
+        if (this.interfaceConfigurationMap.containsKey(egressInterface) && egressInterface.getIPv4InterfaceAddress() != null) {
+            if (this.interfaceConfigurationMap.get(egressInterface).isEnabled()) {
+                List<RIPv2PacketEncapsulation> encaps = this.buildResponse(egressInterface, targetAddress, entries);
+                this.logger.debug("Transmitting RIPv2 update with {} routes over interface {}", entries.size(), egressInterface.getName());
+                for (RIPv2PacketEncapsulation encap : encaps) {
+                    this.getRouterController().getPacketProcessor().processPacket(encap.getUdpEncapsulation().getPacket());
+                }
+            } else {
+                throw new RIPv2Exception("Cannot transmit RIPv2 message over RIPv2-disabled interface");
+            }
+        } else {
+            throw new RIPv2Exception("RIPv2 configuration unavailable for interface " + egressInterface.getName());
+        }
+    }
+
+    private void sendResponse(NetworkInterface egressInterface, IPv4Address targetAddress) throws RIPv2Exception {
+        try {
+            this.sendResponse(egressInterface, targetAddress, this.buildEntryList(egressInterface));
+        } catch (IPv4MathException ex) {
+            throw new RIPv2Exception("Failed to transmit RIPv2 response on interface {}", ex);
+        }
+    }
+
+    private void sendMulticastResponse(NetworkInterface egressInterface) throws RIPv2Exception {
+        if (this.interfaceConfigurationMap.containsKey(egressInterface) && egressInterface.getIPv4InterfaceAddress() != null) {
+            if (this.interfaceConfigurationMap.get(egressInterface).isEnabled()) {
+                this.sendResponse(egressInterface, null);
+            }
+        }
+    }
+
+    private void sendMulticastResponse() throws RIPv2Exception {
         this.logger.debug("Transmitting RIPv2 update over all enabled interfaces");
         try {
             for (NetworkInterface iface : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
                 if (this.interfaceConfigurationMap.containsKey(iface) && iface.getIPv4InterfaceAddress() != null) {
-                    List<RIPv2RouteEntry> outputEntryList = new ArrayList<>();
-                    List<IPv4Prefix> addedPrefixes = new ArrayList<>();
-                    for (IPv4Prefix netPrefix : this.networkPrefixList) {
-                        for (NetworkInterface iface2 : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
-                            if (iface != iface2 && iface2.getIPv4InterfaceAddress() != null && !addedPrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
-                                outputEntryList.add(new RIPv2RouteEntry(iface2.getIPv4InterfaceAddress().getAddress(), 0, iface2.getIPv4InterfaceAddress().getPrefix(), IPv4Address.fromString("0.0.0.0"), 1));
-                                addedPrefixes.add(iface2.getIPv4InterfaceAddress().getPrefix());
-                            }
-                        }
-                        for (RIPv2Route ripRoute : this.installedRouteList) {
-                            if (netPrefix.containsPrefix(ripRoute.getTargetPrefix()) && !ripRoute.getTargetPrefix().equals(iface.getIPv4InterfaceAddress().getPrefix()) && !addedPrefixes.contains(ripRoute.getTargetPrefix())) {
-                                if (ripRoute.getBestMetric() < 15) {
-                                    outputEntryList.add(new RIPv2RouteEntry(iface.getIPv4InterfaceAddress().getAddress(), 0, ripRoute.getTargetPrefix(), IPv4Address.fromString("0.0.0.0"), ripRoute.getBestMetric() + 1));
-                                    addedPrefixes.add(ripRoute.getTargetPrefix());
-                                }
-                            }
-                        }
+                    if (this.interfaceConfigurationMap.get(iface).isEnabled()) {
+                        this.sendMulticastResponse(iface);
                     }
-                    int packetCount = (int) Math.ceil((double) (outputEntryList.size() / 25.0f));
-                    this.logger.debug("Generated update table with {} entries for interface {} and will be transmitted in {} packets", outputEntryList.size(), iface.getName(), packetCount);
-                    for (int packetIndex = 0; packetIndex < packetCount; packetIndex++) {
-                        int packetOutputEntryCount = outputEntryList.size() - (packetIndex * 25);
-                        Packet packet = new Packet(14 + 20 + 8 + 4 + packetOutputEntryCount * 20, iface);
-                        packet.setDestinationHardwareAddress(this.getRIPv2MulticastMACAddress());
-                        packet.setEthernetType(EthernetType.IPV4);
-                        packet.defaultIPv4Setup();
-                        packet.setDestinationIPv4Address(this.getRIPv2MulticastIPv4Address());
-                        packet.setSourceIPv4Address(iface.getIPv4InterfaceAddress().getAddress());
-                        packet.setIPv4Protocol(IPv4Protocol.UDP);
-                        packet.setIPv4TimeToLive((short) 1);
-                        packet.setIPv4TotalLength(packet.getIPv4HeaderLength() + 8 + 4 + packetOutputEntryCount * 20);
-
-                        UDPForIPv4PacketEncapsulation udpEncap = new UDPForIPv4PacketEncapsulation(packet);
-                        udpEncap.setSourcePort(520);
-                        udpEncap.setDestinationPort(520);
-                        udpEncap.setLength(udpEncap.getHeaderLength() + 4 + packetOutputEntryCount * 20);
-
-                        RIPv2PacketEncapsulation ripEncap = new RIPv2PacketEncapsulation(udpEncap, true);
-                        ripEncap.setCommand((short) 2);
-                        ripEncap.setRouteEntries(outputEntryList.toArray(new RIPv2RouteEntry[outputEntryList.size()]));
-                        udpEncap.calculateUDPChecksum();
-                        packet.calculateIPv4Checksum();
-
-                        this.logger.debug("Transmitting RIPv2 update with {} routes over interface {}", outputEntryList.size(), iface.getName());
-                        this.getRouterController().getPacketProcessor().processPacket(packet);
-                    }
-                } else {
-                    this.logger.debug("Failed to obtain RIPv2 configuration for interface {}", iface.getName());
                 }
             }
         } catch (NoSuchModuleException ex) {
             throw new RuntimeException(ex);
-        } catch (IPv4MathException | PacketException | RIPv2Exception | IOException ex) {
-            this.logger.error("Failed transmitting RIPv2 response", ex);
         }
     }
 }

@@ -31,27 +31,27 @@ final public class RIPv2PacketEncapsulation {
     }
 
     public short getCommand() throws PacketException {
-        return this.udpEncapsulation.getPacket().getPcapPacket().getByte(this.getOffset(0));
+        return this.getUdpEncapsulation().getPacket().getPcapPacket().getByte(this.getOffset(0));
     }
 
     public void setCommand(short command) throws PacketException {
-        this.udpEncapsulation.getPacket().getPcapPacket().setByte(this.getOffset(0), DataTypeHelpers.getUnsignedByte(command));
+        this.getUdpEncapsulation().getPacket().getPcapPacket().setByte(this.getOffset(0), DataTypeHelpers.getUnsignedByte(command));
     }
 
     public short getVersion() throws PacketException {
-        return this.udpEncapsulation.getPacket().getPcapPacket().getByte(this.getOffset(1));
+        return this.getUdpEncapsulation().getPacket().getPcapPacket().getByte(this.getOffset(1));
     }
 
     public void setVersion(short version) throws PacketException {
-        this.udpEncapsulation.getPacket().getPcapPacket().setByte(this.getOffset(1), DataTypeHelpers.getUnsignedByte(version));
+        this.getUdpEncapsulation().getPacket().getPcapPacket().setByte(this.getOffset(1), DataTypeHelpers.getUnsignedByte(version));
     }
 
     public RIPv2RouteEntry[] getRouteEntries() throws PacketException, RIPv2Exception {
-        byte[] udpData = this.udpEncapsulation.getData();
-        int entryCount = (this.udpEncapsulation.getLength() - 4) / 20;
+        byte[] udpData = this.getUdpEncapsulation().getData();
+        int entryCount = (this.getUdpEncapsulation().getLength() - 4) / 20;
         RIPv2RouteEntry[] entries = new RIPv2RouteEntry[entryCount];
         for (int i = 0; i < entryCount; i++) {
-            entries[i] = RIPv2RouteEntry.fromBytes(this.udpEncapsulation.getPacket().getSourceIPv4Address(), udpData, 4 + (i * 20));
+            entries[i] = RIPv2RouteEntry.fromBytes(this.getUdpEncapsulation().getPacket().getSourceIPv4Address(), udpData, 4 + (i * 20));
         }
         return entries;
     }
@@ -62,17 +62,21 @@ final public class RIPv2PacketEncapsulation {
             for (RIPv2RouteEntry entry : entries) {
                 routeEntriesBaos.write(entry.getBytes());
             }
-            this.udpEncapsulation.getPacket().getPcapPacket().setByteArray(this.getOffset(4), routeEntriesBaos.toByteArray());
+            this.getUdpEncapsulation().getPacket().getPcapPacket().setByteArray(this.getOffset(4), routeEntriesBaos.toByteArray());
         } catch (IOException | IPv4MathException ex) {
             throw new RIPv2Exception("Failed to add route entries to RIPv2 packet", ex);
         }
     }
 
     public void setRequestWholeTable() throws PacketException {
-        this.udpEncapsulation.getPacket().getPcapPacket().setByteArray(this.getOffset(4), DataTypeHelpers.hexStringToByteArray("0000000000000000000000000000000000000010"));
+        this.getUdpEncapsulation().getPacket().getPcapPacket().setByteArray(this.getOffset(4), DataTypeHelpers.hexStringToByteArray("0000000000000000000000000000000000000010"));
     }
 
     private int getOffset(int offset) throws PacketException {
-        return 14 + this.udpEncapsulation.getPacket().getIPv4HeaderLength() + this.udpEncapsulation.getHeaderLength() + offset;
+        return 14 + this.getUdpEncapsulation().getPacket().getIPv4HeaderLength() + this.getUdpEncapsulation().getHeaderLength() + offset;
+    }
+
+    public UDPForIPv4PacketEncapsulation getUdpEncapsulation() {
+        return udpEncapsulation;
     }
 }

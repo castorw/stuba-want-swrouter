@@ -18,4 +18,8 @@ public class RIPv2NetworkInterfaceConfiguration {
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
+
+    public NetworkInterface getNetworkInterface() {
+        return networkInterface;
+    }
 }
