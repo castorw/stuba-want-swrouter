@@ -1,6 +1,8 @@
 package net.ctrdn.stuba.want.swrouter.common.net;
 
 import java.util.Arrays;
+import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
+import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 
 public class IPv4Address {
@@ -48,6 +50,18 @@ public class IPv4Address {
     @Override
     public String toString() {
         return (this.getBytes()[0] & 0xff) + "." + (this.getBytes()[1] & 0xff) + "." + (this.getBytes()[2] & 0xff) + "." + (this.getBytes()[3] & 0xff);
+    }
+
+    public MACAddress getMulticastMACAddress() throws IPv4MathException {
+        if (IPv4Prefix.MULTICAST.containsAddress(this)) {
+            byte[] bytes = DataTypeHelpers.hexStringToByteArray("01005e000000");
+            bytes[5] |= this.addressBytes[3];
+            bytes[4] |= this.addressBytes[2];
+            bytes[3] |= (this.addressBytes[1] & 0x7F);
+            return new MACAddress(bytes);
+        } else {
+            throw new IPv4MathException("Address " + this.toString() + " is not an multicast IPv4 address");
+        }
     }
 
     @Override

@@ -5,6 +5,7 @@ import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 
 public class IPv4Prefix {
 
+    public static final IPv4Prefix MULTICAST = IPv4Prefix.createStatic("224.0.0.0", 4);
     private final IPv4Address address;
     private final IPv4NetworkMask networkMask;
 
@@ -16,6 +17,14 @@ public class IPv4Prefix {
         }
         this.address = address;
         this.networkMask = networkMask;
+    }
+
+    private static IPv4Prefix createStatic(String addressString, int netmaskLength) {
+        try {
+            return new IPv4Prefix(IPv4Address.fromString(addressString), new IPv4NetworkMask(netmaskLength));
+        } catch (IPv4MathException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public boolean containsAddress(IPv4Address address) {
