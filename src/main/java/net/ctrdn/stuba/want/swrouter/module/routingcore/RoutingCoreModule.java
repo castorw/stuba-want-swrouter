@@ -10,6 +10,7 @@ import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.DefaultRouterModule;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
+import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,16 +64,25 @@ public class RoutingCoreModule extends DefaultRouterModule {
 
                 @Override
                 public int compare(IPv4Route o1, IPv4Route o2) {
-                    int prefixComp = o1.getTargetPrefix().getAddress().getDecimal() < o2.getTargetPrefix().getAddress().getDecimal() ? -1 : o1.getTargetPrefix().getAddress().getDecimal() == o2.getTargetPrefix().getAddress().getDecimal() ? 0 : 1;
-                    if (prefixComp == 0) {
-                        int adComp = o1.getAdministrativeDistance() < o2.getAdministrativeDistance() ? -1 : (o1.getAdministrativeDistance() == o2.getAdministrativeDistance()) ? 0 : 1;
-                        if (adComp == 0) {
-                            int nmlComp = o1.getTargetPrefix().getNetworkMask().getLength() < o2.getTargetPrefix().getNetworkMask().getLength() ? 1 : o1.getTargetPrefix().getNetworkMask().getLength() == o2.getTargetPrefix().getNetworkMask().getLength() ? 0 : -1;
-                            return nmlComp;
+                    try {
+                        if (o1.getTargetPrefix().equals(IPv4Prefix.fromString("0.0.0.0/0"))) {
+                            return 1;
+                        } else if (o2.getTargetPrefix().equals(IPv4Prefix.fromString("0.0.0.0/0"))) {
+                            return -1;
                         }
-                        return adComp;
+                        int prefixComp = o1.getTargetPrefix().getAddress().getDecimal() < o2.getTargetPrefix().getAddress().getDecimal() ? -1 : o1.getTargetPrefix().getAddress().getDecimal() == o2.getTargetPrefix().getAddress().getDecimal() ? 0 : 1;
+                        if (prefixComp == 0) {
+                            int adComp = o1.getAdministrativeDistance() < o2.getAdministrativeDistance() ? -1 : (o1.getAdministrativeDistance() == o2.getAdministrativeDistance()) ? 0 : 1;
+                            if (adComp == 0) {
+                                int nmlComp = o1.getTargetPrefix().getNetworkMask().getLength() < o2.getTargetPrefix().getNetworkMask().getLength() ? 1 : o1.getTargetPrefix().getNetworkMask().getLength() == o2.getTargetPrefix().getNetworkMask().getLength() ? 0 : -1;
+                                return nmlComp;
+                            }
+                            return adComp;
+                        }
+                        return prefixComp;
+                    } catch (IPv4MathException ex) {
+                        throw new RuntimeException(ex);
                     }
-                    return prefixComp;
                 }
             });
             String hopString = "";
