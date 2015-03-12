@@ -107,10 +107,18 @@ public class RIPv2RouteEntry {
         return senderAddress;
     }
 
-    public void onUpdateReceived(RIPv2RouteEntry updateEntry) {
+    public boolean onUpdateReceived(RIPv2RouteEntry updateEntry) {
+        boolean changes = false;
         this.lastUpdateDate = updateEntry.getLastUpdateDate();
+        if (this.metric != updateEntry.getMetric()) {
+            changes = true;
+        }
         this.metric = updateEntry.getMetric();
-        this.setLastState(RIPv2RouteEntryState.HOLD_DOWN);
+        if (this.metric >= 16) {
+            changes = true;
+            this.setLastState(RIPv2RouteEntryState.HOLD_DOWN);
+        }
+        return changes;
     }
 
     protected RIPv2RouteEntryState getLastState() {

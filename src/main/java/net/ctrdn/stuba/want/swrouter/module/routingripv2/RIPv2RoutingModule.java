@@ -76,8 +76,8 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
                             }
                         } else {
                             RIPv2RouteEntry installedEntry = this.rm.installedRouteEntryList.get(currentEntryIndex);
-                            installedEntry.onUpdateReceived(entry);
-                            if (route != null) {
+                            boolean updateResult = installedEntry.onUpdateReceived(entry);
+                            if (route != null && updateResult) {
                                 route.calculateActiveGateways();
                             }
                         }
@@ -385,21 +385,19 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
             List<RIPv2RouteEntry> outputEntryList = new ArrayList<>();
             List<IPv4Prefix> addedPrefixes = new ArrayList<>();
 
-            for (IPv4Prefix netPrefix : this.networkPrefixList) {
-                for (NetworkInterface iface2 : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
-                    if (ignoredInterface != iface2 && iface2.getIPv4InterfaceAddress() != null && !addedPrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
-                        if (includePrefixes == null || includePrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
-                            outputEntryList.add(new RIPv2RouteEntry(2, iface2.getIPv4InterfaceAddress().getAddress(), 0, iface2.getIPv4InterfaceAddress().getPrefix(), IPv4Address.fromString("0.0.0.0"), 1));
-                            addedPrefixes.add(iface2.getIPv4InterfaceAddress().getPrefix());
-                        }
+            for (NetworkInterface iface2 : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
+                if (ignoredInterface != iface2 && iface2.getIPv4InterfaceAddress() != null && !addedPrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
+                    if (includePrefixes == null || includePrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
+                        outputEntryList.add(new RIPv2RouteEntry(2, iface2.getIPv4InterfaceAddress().getAddress(), 0, iface2.getIPv4InterfaceAddress().getPrefix(), IPv4Address.fromString("0.0.0.0"), 1));
+                        addedPrefixes.add(iface2.getIPv4InterfaceAddress().getPrefix());
                     }
                 }
-                for (RIPv2Route ripRoute : this.installedRouteList) {
-                    if (netPrefix.containsPrefix(ripRoute.getTargetPrefix()) && !ripRoute.getTargetPrefix().equals(ignoredInterface.getIPv4InterfaceAddress().getPrefix()) && !addedPrefixes.contains(ripRoute.getTargetPrefix())) {
-                        if ((includePrefixes == null || includePrefixes.contains(ripRoute.getTargetPrefix())) && ripRoute.getBestMetric() < 15) {
-                            outputEntryList.add(new RIPv2RouteEntry(2, ignoredInterface.getIPv4InterfaceAddress().getAddress(), 0, ripRoute.getTargetPrefix(), IPv4Address.fromString("0.0.0.0"), ripRoute.getBestMetric() + 1));
-                            addedPrefixes.add(ripRoute.getTargetPrefix());
-                        }
+            }
+            for (RIPv2Route ripRoute : this.installedRouteList) {
+                if (!ripRoute.getTargetPrefix().equals(ignoredInterface.getIPv4InterfaceAddress().getPrefix()) && !addedPrefixes.contains(ripRoute.getTargetPrefix())) {
+                    if ((includePrefixes == null || includePrefixes.contains(ripRoute.getTargetPrefix())) && ripRoute.getBestMetric() < 15) {
+                        outputEntryList.add(new RIPv2RouteEntry(2, ignoredInterface.getIPv4InterfaceAddress().getAddress(), 0, ripRoute.getTargetPrefix(), IPv4Address.fromString("0.0.0.0"), ripRoute.getBestMetric() + 1));
+                        addedPrefixes.add(ripRoute.getTargetPrefix());
                     }
                 }
             }
