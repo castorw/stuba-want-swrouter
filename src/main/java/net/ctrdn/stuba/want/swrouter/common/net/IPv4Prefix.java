@@ -27,6 +27,14 @@ public class IPv4Prefix {
         }
     }
 
+    public static final IPv4Prefix fromString(String prefixString) throws IPv4MathException {
+        String[] split = prefixString.split("/");
+        if (split.length != 2) {
+            throw new IPv4MathException("Invalid prefix format");
+        }
+        return new IPv4Prefix(IPv4Address.fromString(split[0]), new IPv4NetworkMask(Integer.parseInt(split[1])));
+    }
+
     public boolean containsAddress(IPv4Address address) {
         int prefixAddressDec = this.getAddress().getDecimal();
         int addressDec = address.getDecimal();
