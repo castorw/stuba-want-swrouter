@@ -148,4 +148,13 @@ public class InterfaceManagerModule extends DefaultRouterModule {
     public NetworkInterface[] getNetworkInterfaces() {
         return this.interfaceList.toArray(new NetworkInterface[this.interfaceList.size()]);
     }
+
+    public NetworkInterface getNetworkInterfaceByName(String name) {
+        for (NetworkInterface iface : this.interfaceList) {
+            if (iface.getName().equals(name)) {
+                return iface;
+            }
+        }
+        return null;
+    }
 }
