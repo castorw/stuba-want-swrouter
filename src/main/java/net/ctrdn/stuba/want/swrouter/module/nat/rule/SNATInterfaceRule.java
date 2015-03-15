@@ -44,7 +44,7 @@ public class SNATInterfaceRule extends DefaultNATRule {
                     }
                     case UDP: {
                         UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
-                        SNATTranslation xlation = SNATTranslation.newPortTranslation(IPv4Protocol.TCP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
+                        SNATTranslation xlation = SNATTranslation.newPortTranslation(IPv4Protocol.UDP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
                         this.getNatModule().installTranslation(xlation);
                         xlation.matchAndApply(packet);
                         return NATRuleResult.HANDLED;
@@ -77,5 +77,10 @@ public class SNATInterfaceRule extends DefaultNATRule {
     @Override
     public String getTypeString() {
         return "SNAT_INTERFACE";
+    }
+
+    @Override
+    public String toString() {
+        return this.getPriority() + " SNAT_INTERFACE/PAT inside " + this.getInsidePrefix() + " <---> outside " + this.getOutsideInterface().getIPv4InterfaceAddress().getAddress() + " on " + this.getOutsideInterface().getName();
     }
 }
