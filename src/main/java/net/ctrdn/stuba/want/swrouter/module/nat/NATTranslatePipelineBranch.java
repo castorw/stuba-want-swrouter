@@ -37,7 +37,8 @@ public class NATTranslatePipelineBranch extends DefaultPipelineBranch {
     public PipelineResult process(Packet packet) {
         if (packet.getProcessingChain() == ProcessingChain.FORWARD && packet.getEgressNetworkInterface() != null && packet.getEthernetType() == EthernetType.IPV4) {
             try {
-                for (NATTranslation translation : this.natModule.getTranslationList()) {
+                for (int i = this.natModule.getTranslationList().size() - 1; i > -1; i--) {
+                    NATTranslation translation = this.natModule.getTranslationList().get(i);
                     if (translation.matchAndApply(packet)) {
                         this.logger.debug("NAT Translation {} has address/port translation on packet {}", translation, packet.getPacketIdentifier().getUuid());
                         return PipelineResult.CONTINUE;
