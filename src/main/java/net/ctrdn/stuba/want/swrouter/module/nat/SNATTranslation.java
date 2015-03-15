@@ -42,7 +42,7 @@ public class SNATTranslation implements NATTranslation {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for address translation and cannot be used for PAT");
         }
         outsideAddress.setConfiguredForPortTranslation(true);
-        return new SNATTranslation(protocol, outsideAddress, outsideInterface, outsideAddress.allocateTCPPort(), insideAddress, insideProtocolPort);
+        return new SNATTranslation(protocol, outsideAddress, outsideInterface, (protocol == IPv4Protocol.TCP) ? outsideAddress.allocateTCPPort() : (protocol == IPv4Protocol.UDP) ? outsideAddress.allocateUDPPort() : null, insideAddress, insideProtocolPort);
     }
 
     private SNATTranslation(IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolPort, IPv4Address insideAddress, Integer insideProtocolPort) {
