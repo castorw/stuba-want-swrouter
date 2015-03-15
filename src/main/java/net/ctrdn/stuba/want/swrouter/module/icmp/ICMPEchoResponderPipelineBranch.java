@@ -41,7 +41,7 @@ public class ICMPEchoResponderPipelineBranch extends DefaultPipelineBranch {
             if (packet.getProcessingChain() == ProcessingChain.INPUT && packet.getEthernetType() == EthernetType.IPV4 && packet.getIPv4Protocol() == IPv4Protocol.ICMP) {
                 ICMPv4EchoPacketEncapsulation icmpEncap = new ICMPv4EchoPacketEncapsulation(packet);
                 if (icmpEncap.getEchoType() == ICMPv4EchoPacketEncapsulation.EchoType.REQUEST) {
-                    Packet replyPacket = new Packet(packet.getPcapPacket().getCaptureHeader().caplen(), packet.getIngressNetworkInterface());
+                    Packet replyPacket = new Packet(packet.getPacketBuffer().size(), packet.getIngressNetworkInterface());
                     replyPacket.setEthernetType(EthernetType.IPV4);
                     replyPacket.setDestinationHardwareAddress(MACAddress.ZERO);
                     replyPacket.defaultIPv4Setup();

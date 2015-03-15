@@ -35,7 +35,7 @@ public class PacketOutputPipelineBranch extends DefaultPipelineBranch {
         try {
             if (packet.getProcessingChain() == ProcessingChain.OUTPUT && (packet.getEthernetType() != EthernetType.IPV4 || packet.getForwarderIPv4Address() == null)) {
                 if (packet.getDestinationHardwareAddress() != MACAddress.ZERO && packet.getEgressNetworkInterface() != null) {
-                    this.logger.trace("Transmitting OUTPUT packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPcapPacket().getByteArray(0, packet.getPcapPacket().size()), true));
+                    this.logger.trace("Transmitting OUTPUT packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPacketBuffer().getByteArray(0, packet.getPacketBuffer().size()), true));
                     packet.getEgressNetworkInterface().sendPacket(packet);
                     this.logger.debug("Transmitted packet {} over network interface {}", packet.getPacketIdentifier().getUuid().toString(), packet.getEgressNetworkInterface().getName());
                     return PipelineResult.HANDLED;

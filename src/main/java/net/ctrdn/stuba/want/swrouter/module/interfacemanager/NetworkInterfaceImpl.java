@@ -14,10 +14,11 @@ import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4Route;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteFlag;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteGateway;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.RoutingCoreModule;
+import org.jnetpcap.JBufferHandler;
 import org.jnetpcap.Pcap;
+import org.jnetpcap.PcapHeader;
 import org.jnetpcap.PcapIf;
-import org.jnetpcap.packet.PcapPacket;
-import org.jnetpcap.packet.PcapPacketHandler;
+import org.jnetpcap.nio.JBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,13 +32,13 @@ public class NetworkInterfaceImpl implements NetworkInterface {
 
         @Override
         public void run() {
-            PcapPacketHandler<String> jpacketHandler = new PcapPacketHandler<String>() {
+            JBufferHandler<String> handler = new JBufferHandler<String>() {
 
                 @Override
-                public void nextPacket(PcapPacket pcapPacket, String user) {
+                public void nextPacket(PcapHeader ph, JBuffer jb, String t) {
                     try {
                         ProcessingChain chain = ProcessingChain.FORWARD;
-                        Packet packet = new Packet(Receiver.this.networkInterface, pcapPacket);
+                        Packet packet = new Packet(Receiver.this.networkInterface, jb);
                         if (packet.getEthernetType() == EthernetType.IPV4) {
                             for (NetworkInterface iface : NetworkInterfaceImpl.this.routerController.getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
                                 if (iface.getIPv4InterfaceAddress() != null && packet.getDestinationIPv4Address().equals(iface.getIPv4InterfaceAddress().getAddress())) {
@@ -57,7 +58,7 @@ public class NetworkInterfaceImpl implements NetworkInterface {
             };
 
             while (this.running) {
-                this.networkInterface.pcap.loop(Pcap.LOOP_INFINITE, jpacketHandler, null);
+                this.networkInterface.pcap.loop(1, handler, null);
             }
         }
     }
@@ -124,10 +125,8 @@ public class NetworkInterfaceImpl implements NetworkInterface {
             if (this.pcap == null) {
                 StringBuilder errbuf = new StringBuilder();
                 this.logger.debug("Starting packet receiver for interface " + this.pcapInterface.getName());
-                int snaplen = 64 * 1024;
-                int flags = Pcap.MODE_PROMISCUOUS;
-                int timeout = 10 * 1000;
-                this.pcap = Pcap.openLive(this.pcapInterface.getName(), snaplen, flags, timeout, errbuf);
+                this.pcap = Pcap.openLive(this.pcapInterface.getName(), 64 * 1024, Pcap.MODE_NON_PROMISCUOUS, 10, errbuf);
+                this.pcap.setBufferSize(4000000);
 
                 if (pcap == null) {
                     this.logger.error("Failed to open device for capture: " + errbuf.toString());
@@ -153,9 +152,9 @@ public class NetworkInterfaceImpl implements NetworkInterface {
     }
 
     @Override
-    public void sendPacket(Packet packet) {
+    public synchronized void sendPacket(Packet packet) {
         if (this.receiver != null) {
-            this.pcap.sendPacket(packet.getPcapPacket());
+            this.pcap.sendPacket(packet.getPacketBuffer());
         } else {
             this.logger.warn("Cannot transmit data over inactive interface");
         }

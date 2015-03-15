@@ -39,7 +39,7 @@ public class PacketForwardPipelineBranch extends DefaultPipelineBranch {
                         packet.setSourceHardwareAddress(packet.getEgressNetworkInterface().getHardwareAddress());
                         packet.setIPv4TimeToLive((short) (packet.getIPv4TimeToLive() - 1));
                         packet.calculateIPv4Checksum();
-                        this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPcapPacket().getByteArray(0, packet.getPcapPacket().size()), true));
+                        this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPacketBuffer().getByteArray(0, packet.getPacketBuffer().size()), true));
                         packet.getEgressNetworkInterface().sendPacket(packet);
                         return PipelineResult.HANDLED;
                     } else if (packet.getForwarderIPv4Address() != null && packet.getForwarderHardwareAddress() != null && !packet.getForwarderHardwareAddress().equals(MACAddress.ZERO) && packet.getEgressNetworkInterface() != null) {
@@ -47,7 +47,7 @@ public class PacketForwardPipelineBranch extends DefaultPipelineBranch {
                         packet.setDestinationHardwareAddress(packet.getForwarderHardwareAddress());
                         packet.setIPv4TimeToLive((short) (packet.getIPv4TimeToLive() - 1));
                         packet.calculateIPv4Checksum();
-                        this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPcapPacket().getByteArray(0, packet.getPcapPacket().size()), true));
+                        this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPacketBuffer().getByteArray(0, packet.getPacketBuffer().size()), true));
                         packet.getEgressNetworkInterface().sendPacket(packet);
                         return PipelineResult.HANDLED;
                     } else {

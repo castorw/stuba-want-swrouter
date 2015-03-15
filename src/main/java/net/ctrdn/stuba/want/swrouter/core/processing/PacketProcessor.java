@@ -25,7 +25,7 @@ public class PacketProcessor {
     private JsonObject configuration;
 
     public PacketProcessor() {
-        this.threadPool = Executors.newCachedThreadPool(new ThreadFactory() {
+        this.threadPool = Executors.newFixedThreadPool(32, new ThreadFactory() {
             private int nextProcessingThreadId = 0;
 
             @Override

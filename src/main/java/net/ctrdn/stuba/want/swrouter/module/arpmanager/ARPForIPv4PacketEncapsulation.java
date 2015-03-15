@@ -50,74 +50,74 @@ public final class ARPForIPv4PacketEncapsulation {
     }
 
     public int getHardwareType() {
-        return DataTypeHelpers.getUnsignedShortFromBytes(this.packet.getPcapPacket().getByte(14), this.packet.getPcapPacket().getByte(15));
+        return DataTypeHelpers.getUnsignedShortFromBytes(this.packet.getPacketBuffer().getByte(14), this.packet.getPacketBuffer().getByte(15));
     }
 
     public void setHardwareType(int hardwareType) {
-        this.packet.getPcapPacket().setByteArray(14, DataTypeHelpers.getUnsignedShort(hardwareType));
+        this.packet.getPacketBuffer().setByteArray(14, DataTypeHelpers.getUnsignedShort(hardwareType));
     }
 
     public EthernetType getProtocolType() {
-        return EthernetType.valueOf(this.packet.getPcapPacket().getByteArray(16, 2));
+        return EthernetType.valueOf(this.packet.getPacketBuffer().getByteArray(16, 2));
     }
 
     public void setProtocolType(EthernetType protocolType) {
-        this.packet.getPcapPacket().setByteArray(16, protocolType.getCode());
+        this.packet.getPacketBuffer().setByteArray(16, protocolType.getCode());
     }
 
     public short getHardwareAddressLength() {
-        return DataTypeHelpers.getUnsignedByteValue(this.packet.getPcapPacket().getByte(18));
+        return DataTypeHelpers.getUnsignedByteValue(this.packet.getPacketBuffer().getByte(18));
     }
 
     public void setHardwareAddressLength(short length) {
-        this.packet.getPcapPacket().setByte(18, DataTypeHelpers.getUnsignedByte(length));
+        this.packet.getPacketBuffer().setByte(18, DataTypeHelpers.getUnsignedByte(length));
     }
 
     public short getProtocolAddressLength() {
-        return DataTypeHelpers.getUnsignedByteValue(this.packet.getPcapPacket().getByte(19));
+        return DataTypeHelpers.getUnsignedByteValue(this.packet.getPacketBuffer().getByte(19));
     }
 
     public void setProtocolAddressLength(short length) {
-        this.packet.getPcapPacket().setByte(19, DataTypeHelpers.getUnsignedByte(length));
+        this.packet.getPacketBuffer().setByte(19, DataTypeHelpers.getUnsignedByte(length));
     }
 
     public Operation getOperation() {
-        return Operation.valueOf(this.packet.getPcapPacket().getByteArray(20, 2));
+        return Operation.valueOf(this.packet.getPacketBuffer().getByteArray(20, 2));
     }
 
     public void setOperation(Operation operation) {
-        this.packet.getPcapPacket().setByteArray(20, operation.getCode());
+        this.packet.getPacketBuffer().setByteArray(20, operation.getCode());
     }
 
     public MACAddress getSenderHardwareAddress() {
-        return new MACAddress(this.packet.getPcapPacket().getByteArray(22, 6));
+        return new MACAddress(this.packet.getPacketBuffer().getByteArray(22, 6));
     }
 
     public void setSenderHardwareAddress(MACAddress hardwareAddress) {
-        this.packet.getPcapPacket().setByteArray(22, hardwareAddress.getAddressBytes());
+        this.packet.getPacketBuffer().setByteArray(22, hardwareAddress.getAddressBytes());
     }
 
     public IPv4Address getSenderProtocolAddress() {
-        return new IPv4Address(this.packet.getPcapPacket().getByteArray(28, 4));
+        return new IPv4Address(this.packet.getPacketBuffer().getByteArray(28, 4));
     }
 
     public void setSenderProtocolAddress(IPv4Address address) {
-        this.packet.getPcapPacket().setByteArray(28, address.getBytes());
+        this.packet.getPacketBuffer().setByteArray(28, address.getBytes());
     }
 
     public MACAddress getTargetHardwareAddress() {
-        return new MACAddress(this.packet.getPcapPacket().getByteArray(32, 6));
+        return new MACAddress(this.packet.getPacketBuffer().getByteArray(32, 6));
     }
 
     public void setTargetHardwareAddress(MACAddress hardwareAddress) {
-        this.packet.getPcapPacket().setByteArray(32, hardwareAddress.getAddressBytes());
+        this.packet.getPacketBuffer().setByteArray(32, hardwareAddress.getAddressBytes());
     }
 
     public IPv4Address getTargetProtocolAddress() {
-        return new IPv4Address(this.packet.getPcapPacket().getByteArray(38, 4));
+        return new IPv4Address(this.packet.getPacketBuffer().getByteArray(38, 4));
     }
 
     public void setTargetProtocolAddress(IPv4Address address) {
-        this.packet.getPcapPacket().setByteArray(38, address.getBytes());
+        this.packet.getPacketBuffer().setByteArray(38, address.getBytes());
     }
 }
