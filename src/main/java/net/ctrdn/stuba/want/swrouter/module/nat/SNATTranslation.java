@@ -52,6 +52,7 @@ public class SNATTranslation implements NATTranslation {
         this.insideAddress = insideAddress;
         this.insideProtocolPort = insideProtocolPort;
         this.outsideProtocolPort = outsideProtocolPort;
+        this.lastActivityDate = new Date();
     }
 
     public IPv4Protocol getProtocol() {
@@ -89,6 +90,15 @@ public class SNATTranslation implements NATTranslation {
     }
 
     @Override
+    public String toString() {
+        if (this.protocol == null) {
+            return "SNAT/NAT inside " + this.getInsideAddress() + " <---> outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName();
+        } else {
+            return "SNAT/PAT inside " + this.getInsideAddress() + " " + this.getProtocol().name() + "/" + this.getInsideProtocolPort() + " <---> outside " + this.getOutsideAddress().getAddress() + " " + this.getProtocol().name() + "/" + this.getOutsideProtocolPort() + " on " + this.getOutsideInterface().getName();
+        }
+    }
+
+    @Override
     public boolean matchAndApply(Packet packet) throws NATTranslationException {
         if (this.isActive()) {
             if ((packet.getProcessingChain() == ProcessingChain.INPUT || packet.getProcessingChain() == ProcessingChain.FORWARD) && packet.getEthernetType() == EthernetType.IPV4) {
@@ -109,6 +119,7 @@ public class SNATTranslation implements NATTranslation {
                                     tcpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     tcpEncapsulation.calculateTCPChecksum();
                                     tcpEncapsulation.getPacket().calculateIPv4Checksum();
+                                    this.updateLastActivity();
                                     return true;
                                 }
                                 break;
@@ -120,6 +131,7 @@ public class SNATTranslation implements NATTranslation {
                                     udpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     udpEncapsulation.calculateUDPChecksum();
                                     udpEncapsulation.getPacket().calculateIPv4Checksum();
+                                    this.updateLastActivity();
                                     return true;
                                 }
                                 break;
@@ -140,6 +152,7 @@ public class SNATTranslation implements NATTranslation {
                                     tcpEncapsulation.calculateTCPChecksum();
                                     tcpEncapsulation.getPacket().calculateIPv4Checksum();
                                     packet.setProcessingChain(ProcessingChain.FORWARD);
+                                    this.updateLastActivity();
                                     return true;
                                 }
                                 break;
@@ -153,6 +166,7 @@ public class SNATTranslation implements NATTranslation {
                                     udpEncapsulation.calculateUDPChecksum();
                                     udpEncapsulation.getPacket().calculateIPv4Checksum();
                                     packet.setProcessingChain(ProcessingChain.FORWARD);
+                                    this.updateLastActivity();
                                     return true;
                                 }
                                 break;
@@ -170,5 +184,9 @@ public class SNATTranslation implements NATTranslation {
             }
         }
         return false;
+    }
+
+    private void updateLastActivity() {
+        this.lastActivityDate = new Date();
     }
 }
