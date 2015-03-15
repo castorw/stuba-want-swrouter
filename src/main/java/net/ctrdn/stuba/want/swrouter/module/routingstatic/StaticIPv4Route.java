@@ -54,7 +54,7 @@ public class StaticIPv4Route implements IPv4Route {
     }
 
     @Override
-    public IPv4RouteGateway getNextGateway() {
+    public synchronized IPv4RouteGateway getNextGateway() {
         IPv4RouteGateway gw = (IPv4RouteGateway) this.gatewayList.get(this.nextGatewayIndex);
         this.nextGatewayIndex++;
         if (this.nextGatewayIndex >= this.gatewayList.size()) {

@@ -118,7 +118,7 @@ final public class RIPv2Route implements IPv4Route {
     }
 
     @Override
-    public IPv4RouteGateway getNextGateway() {
+    public synchronized IPv4RouteGateway getNextGateway() {
         RouteGateway gw = (RouteGateway) this.activeGateways[this.nextGatewayIndex];
         this.nextGatewayIndex++;
         if (this.nextGatewayIndex >= this.activeGateways.length) {

@@ -190,7 +190,7 @@ public class NetworkInterfaceImpl implements NetworkInterface {
                 }
 
                 @Override
-                public IPv4RouteGateway getNextGateway() {
+                public synchronized IPv4RouteGateway getNextGateway() {
                     return this.gateway;
                 }
 
