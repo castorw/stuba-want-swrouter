@@ -151,7 +151,15 @@ public class RouterController {
             if (!this.configurationFile.exists()) {
                 this.configurationFile.createNewFile();
             }
-            JsonReader reader = Json.createReader(new FileInputStream(this.configurationFile));
+            FileInputStream configurationFileInputStream = new FileInputStream(this.configurationFile);
+            if (configurationFileInputStream.available() == 0) {
+                configurationFileInputStream.close();
+                try (FileOutputStream cpfos = new FileOutputStream(this.configurationFile)) {
+                    cpfos.write("{}".getBytes());
+                }
+                configurationFileInputStream = new FileInputStream(this.configurationFile);
+            }
+            JsonReader reader = Json.createReader(configurationFileInputStream);
             this.configurationObject = reader.readObject();
             if (this.configurationObject.containsKey("CoreConfiguration")) {
                 JsonObject coreConfigObject = this.configurationObject.getJsonObject("CoreConfiguration");
