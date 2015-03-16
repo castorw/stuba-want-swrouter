@@ -15,12 +15,9 @@ import net.ctrdn.stuba.want.swrouter.exception.NATException;
 import net.ctrdn.stuba.want.swrouter.exception.NATTranslationException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class NATTranslation {
 
-    private final Logger logger = LoggerFactory.getLogger(NATTranslation.class);
     private final IPv4Protocol protocol;
     private final NetworkInterface outsideInterface;
     private final NATAddress outsideAddress;
@@ -85,6 +82,10 @@ public class NATTranslation {
         return active;
     }
 
+    public void deactivate() {
+        this.active = false;
+    }
+
     public Date getLastActivityDate() {
         return lastActivityDate;
     }
@@ -103,17 +104,26 @@ public class NATTranslation {
             if ((packet.getProcessingChain() == ProcessingChain.INPUT || packet.getProcessingChain() == ProcessingChain.FORWARD) && packet.getEthernetType() == EthernetType.IPV4) {
                 try {
                     if (packet.getProcessingChain() == ProcessingChain.FORWARD && this.getProtocol() == null && this.getOutsideInterface().equals(packet.getEgressNetworkInterface()) && this.getInsideAddress().equals(packet.getSourceIPv4Address())) {
-                        // IMPLEMENT
-                        throw new NATTranslationException("NAT Address Translation is not yet supported");
+                        // NAT XLATE
+                        packet.setSourceIPv4Address(this.getOutsideAddress().getAddress());
+                        packet.calculateIPv4Checksum();
+                        this.updateLastActivity();
+                        return true;
                     } else if (this.getProtocol() == null && this.getOutsideAddress().equals(packet.getIngressNetworkInterface()) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
-                        // IMPLEMENT
-                        throw new NATTranslationException("NAT Address Translation is not yet supported");
+                        // NAT UNXLATE
+                        packet.setDestinationIPv4Address(this.getInsideAddress());
+                        packet.setDestinationHardwareAddress(MACAddress.ZERO);
+                        packet.calculateIPv4Checksum();
+                        packet.setProcessingChain(ProcessingChain.FORWARD);
+                        this.updateLastActivity();
+                        return true;
                     } else if (packet.getProcessingChain() == ProcessingChain.FORWARD && this.getProtocol() == packet.getIPv4Protocol() && this.getOutsideInterface().equals(packet.getEgressNetworkInterface()) && this.getInsideAddress().equals(packet.getSourceIPv4Address())) {
-                        // Possible Port Translation
+                        // Possible PAT XLATE
                         switch (this.getProtocol()) {
                             case TCP: {
                                 TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
                                 if (tcpEncapsulation.getSourcePort() == this.getInsideProtocolSpecificIdentifier()) {
+                                    // PAT TCP XLATE
                                     tcpEncapsulation.setSourcePort(this.getOutsideProtocolSpecificIdentifier());
                                     tcpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     tcpEncapsulation.calculateTCPChecksum();
@@ -126,6 +136,7 @@ public class NATTranslation {
                             case UDP: {
                                 UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
                                 if (udpEncapsulation.getSourcePort() == this.getInsideProtocolSpecificIdentifier()) {
+                                    // PAT UDP XLATE
                                     udpEncapsulation.setSourcePort(this.getOutsideProtocolSpecificIdentifier());
                                     udpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     udpEncapsulation.calculateUDPChecksum();
@@ -138,6 +149,7 @@ public class NATTranslation {
                             case ICMP: {
                                 ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
                                 if (icmpEncapsulation.getIdentifier() == this.getInsideProtocolSpecificIdentifier()) {
+                                    // PAT ICMP XLATE
                                     icmpEncapsulation.setIdentifier(this.getOutsideProtocolSpecificIdentifier());
                                     icmpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     icmpEncapsulation.calculateICMPChecksum();
@@ -148,11 +160,12 @@ public class NATTranslation {
                             }
                         }
                     } else if (this.getProtocol() == packet.getIPv4Protocol() && this.getOutsideInterface().equals(packet.getIngressNetworkInterface()) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
-                        // Possible Port Untranslation
+                        // Possible PAT UNXLATE
                         switch (this.getProtocol()) {
                             case TCP: {
                                 TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
                                 if (tcpEncapsulation.getDestinationPort() == this.getOutsideProtocolSpecificIdentifier()) {
+                                    // PAT TCP UNXLATE
                                     tcpEncapsulation.setDestinationPort(this.getInsideProtocolSpecificIdentifier());
                                     tcpEncapsulation.getPacket().setDestinationIPv4Address(this.getInsideAddress());
                                     tcpEncapsulation.getPacket().setDestinationHardwareAddress(MACAddress.ZERO);
@@ -167,6 +180,7 @@ public class NATTranslation {
                             case UDP: {
                                 UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
                                 if (udpEncapsulation.getDestinationPort() == this.getOutsideProtocolSpecificIdentifier()) {
+                                    // PAT UDP UNXLATE
                                     udpEncapsulation.setDestinationPort(this.getInsideProtocolSpecificIdentifier());
                                     udpEncapsulation.getPacket().setDestinationIPv4Address(this.getInsideAddress());
                                     udpEncapsulation.getPacket().setDestinationHardwareAddress(MACAddress.ZERO);
@@ -181,6 +195,7 @@ public class NATTranslation {
                             case ICMP: {
                                 ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
                                 if (icmpEncapsulation.getIdentifier() == this.getOutsideProtocolSpecificIdentifier() && icmpEncapsulation.isQueryBasedMessage()) {
+                                    // PAT ICMP UNXLATE
                                     icmpEncapsulation.setIdentifier(this.getInsideProtocolSpecificIdentifier());
                                     icmpEncapsulation.getPacket().setDestinationIPv4Address(this.getInsideAddress());
                                     icmpEncapsulation.getPacket().setDestinationHardwareAddress(MACAddress.ZERO);
