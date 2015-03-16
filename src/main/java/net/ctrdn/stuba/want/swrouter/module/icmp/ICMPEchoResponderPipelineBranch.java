@@ -1,5 +1,6 @@
 package net.ctrdn.stuba.want.swrouter.module.icmp;
 
+import net.ctrdn.stuba.want.swrouter.core.processing.ICMPForIPv4EchoPacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
@@ -39,8 +40,8 @@ public class ICMPEchoResponderPipelineBranch extends DefaultPipelineBranch {
     public PipelineResult process(Packet packet) {
         try {
             if (packet.getProcessingChain() == ProcessingChain.INPUT && packet.getEthernetType() == EthernetType.IPV4 && packet.getIPv4Protocol() == IPv4Protocol.ICMP) {
-                ICMPv4EchoPacketEncapsulation icmpEncap = new ICMPv4EchoPacketEncapsulation(packet);
-                if (icmpEncap.getEchoType() == ICMPv4EchoPacketEncapsulation.EchoType.REQUEST) {
+                ICMPForIPv4EchoPacketEncapsulation icmpEncap = new ICMPForIPv4EchoPacketEncapsulation(packet);
+                if (icmpEncap.getEchoType() == ICMPForIPv4EchoPacketEncapsulation.EchoType.REQUEST) {
                     Packet replyPacket = new Packet(packet.getPacketBuffer().size(), packet.getIngressNetworkInterface());
                     replyPacket.setEthernetType(EthernetType.IPV4);
                     replyPacket.setDestinationHardwareAddress(MACAddress.ZERO);
@@ -51,8 +52,8 @@ public class ICMPEchoResponderPipelineBranch extends DefaultPipelineBranch {
                     replyPacket.setIPv4TimeToLive((short) (packet.getIPv4TimeToLive() - 1));
                     replyPacket.setIPv4TotalLength(replyPacket.getIPv4HeaderLength() + 8 + icmpEncap.getData().length);
 
-                    ICMPv4EchoPacketEncapsulation replyEncap = new ICMPv4EchoPacketEncapsulation(replyPacket);
-                    replyEncap.setEchoType(ICMPv4EchoPacketEncapsulation.EchoType.REPLY);
+                    ICMPForIPv4EchoPacketEncapsulation replyEncap = new ICMPForIPv4EchoPacketEncapsulation(replyPacket);
+                    replyEncap.setEchoType(ICMPForIPv4EchoPacketEncapsulation.EchoType.REPLY);
                     replyEncap.setIdentifier(icmpEncap.getIdentifier());
                     replyEncap.setSequenceNumber(icmpEncap.getSequenceNumber());
                     replyEncap.setData(icmpEncap.getData());
@@ -61,7 +62,7 @@ public class ICMPEchoResponderPipelineBranch extends DefaultPipelineBranch {
                     this.icmpModule.getRouterController().getPacketProcessor().processPacket(replyPacket);
                     this.logger.debug("Sending ICMP echo reply to {} on interface {}", packet.getSourceIPv4Address(), packet.getIngressNetworkInterface().getName());
                     return PipelineResult.HANDLED;
-                } else if (icmpEncap.getEchoType() == ICMPv4EchoPacketEncapsulation.EchoType.UNKNOWN) {
+                } else if (icmpEncap.getEchoType() == ICMPForIPv4EchoPacketEncapsulation.EchoType.UNKNOWN) {
                     this.logger.debug("Not handling unknown ICMP type within packet {}", packet.getPacketIdentifier().getUuid().toString());
                 }
             }

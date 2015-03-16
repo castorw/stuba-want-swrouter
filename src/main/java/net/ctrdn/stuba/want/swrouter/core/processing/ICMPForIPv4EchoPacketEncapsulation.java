@@ -1,4 +1,4 @@
-package net.ctrdn.stuba.want.swrouter.module.icmp;
+package net.ctrdn.stuba.want.swrouter.core.processing;
 
 import java.util.Arrays;
 import net.ctrdn.stuba.want.swrouter.common.DataTypeHelpers;
@@ -8,7 +8,7 @@ import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import org.jnetpcap.protocol.network.Icmp;
 
-public class ICMPv4EchoPacketEncapsulation {
+public class ICMPForIPv4EchoPacketEncapsulation {
 
     public enum EchoType {
 
@@ -38,7 +38,7 @@ public class ICMPv4EchoPacketEncapsulation {
 
     private final Packet packet;
 
-    public ICMPv4EchoPacketEncapsulation(Packet packet) throws PacketException {
+    public ICMPForIPv4EchoPacketEncapsulation(Packet packet) throws PacketException {
         this.packet = packet;
         if (this.packet.getEthernetType() != EthernetType.IPV4 || this.packet.getIPv4Protocol() != IPv4Protocol.ICMP) {
             throw new PacketException("Cannot encapsulate - not an ICMP packet");
