@@ -12,7 +12,7 @@ import net.ctrdn.stuba.want.swrouter.module.nat.DefaultNATRule;
 import net.ctrdn.stuba.want.swrouter.module.nat.NATAddress;
 import net.ctrdn.stuba.want.swrouter.module.nat.NATModule;
 import net.ctrdn.stuba.want.swrouter.module.nat.NATRuleResult;
-import net.ctrdn.stuba.want.swrouter.module.nat.SNATTranslation;
+import net.ctrdn.stuba.want.swrouter.module.nat.NATTranslation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,14 +37,14 @@ public class SNATInterfaceRule extends DefaultNATRule {
                 switch (packet.getIPv4Protocol()) {
                     case TCP: {
                         TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
-                        SNATTranslation xlation = SNATTranslation.newPortTranslation(IPv4Protocol.TCP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
+                        NATTranslation xlation = NATTranslation.newPortTranslation(IPv4Protocol.TCP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
                         this.getNatModule().installTranslation(xlation);
                         xlation.matchAndApply(packet);
                         return NATRuleResult.HANDLED;
                     }
                     case UDP: {
                         UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
-                        SNATTranslation xlation = SNATTranslation.newPortTranslation(IPv4Protocol.UDP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
+                        NATTranslation xlation = NATTranslation.newPortTranslation(IPv4Protocol.UDP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
                         this.getNatModule().installTranslation(xlation);
                         xlation.matchAndApply(packet);
                         return NATRuleResult.HANDLED;
