@@ -204,7 +204,7 @@ public class NATModule extends DefaultRouterModule {
                 return na;
             }
         }
-        NATAddress na = new NATAddress(address, 10000, 19999, 20000, 29999);
+        NATAddress na = new NATAddress(address, 10000, 19999, 20000, 29999, 1, 65535);
         this.addressList.add(na);
         return na;
     }

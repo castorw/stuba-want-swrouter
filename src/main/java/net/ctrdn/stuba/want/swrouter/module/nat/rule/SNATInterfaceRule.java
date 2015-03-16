@@ -2,6 +2,7 @@ package net.ctrdn.stuba.want.swrouter.module.nat.rule;
 
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
+import net.ctrdn.stuba.want.swrouter.core.processing.ICMPForIPv4QueryPacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.TCPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.core.processing.UDPForIPv4PacketEncapsulation;
@@ -34,26 +35,36 @@ public class SNATInterfaceRule extends DefaultNATRule {
     public NATRuleResult translate(Packet packet) {
         try {
             if (this.getInsidePrefix().containsAddress(packet.getSourceIPv4Address()) && this.outsideInterface.equals(packet.getEgressNetworkInterface())) {
+                NATTranslation xlation;
                 switch (packet.getIPv4Protocol()) {
                     case TCP: {
                         TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
-                        NATTranslation xlation = NATTranslation.newPortTranslation(IPv4Protocol.TCP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
-                        this.getNatModule().installTranslation(xlation);
-                        xlation.apply(packet);
-                        return NATRuleResult.HANDLED;
+                        xlation = NATTranslation.newPortTranslation(IPv4Protocol.TCP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
+                        break;
                     }
                     case UDP: {
                         UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
-                        NATTranslation xlation = NATTranslation.newPortTranslation(IPv4Protocol.UDP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
-                        this.getNatModule().installTranslation(xlation);
-                        xlation.apply(packet);
-                        return NATRuleResult.HANDLED;
+                        xlation = NATTranslation.newPortTranslation(IPv4Protocol.UDP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
+                        break;
+                    }
+                    case ICMP: {
+                        ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
+                        if (icmpEncapsulation.isQueryBasedMessage()) {
+                            xlation = NATTranslation.newPortTranslation(IPv4Protocol.ICMP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), icmpEncapsulation.getIdentifier());
+                        } else {
+                            this.logger.info("Canno perform NAT on non-query ICMP message on packet {}", packet.getPacketIdentifier().getUuid().toString());
+                            return NATRuleResult.DROP;
+                        }
+                        break;
                     }
                     default: {
-                        this.logger.warn("Cannot preform NAT XLATE on packet of protocol {}", packet.getIPv4Protocol().name());
+                        this.logger.info("Canno perform NAT on unsupported IPv4 protocol {} on packet {}", packet.getIPv4Protocol().name(), packet.getPacketIdentifier().getUuid().toString());
+                        return NATRuleResult.DROP;
                     }
                 }
-                return NATRuleResult.CONTINUE;
+                this.getNatModule().installTranslation(xlation);
+                xlation.apply(packet);
+                return NATRuleResult.HANDLED;
             }
         } catch (PacketException | NATException ex) {
             this.logger.warn("Problem processing NAT XLATE on packet {}", packet.getPacketIdentifier().getUuid().toString(), ex);

@@ -6,6 +6,7 @@ import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
+import net.ctrdn.stuba.want.swrouter.core.processing.ICMPForIPv4QueryPacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.ProcessingChain;
 import net.ctrdn.stuba.want.swrouter.core.processing.TCPForIPv4PacketEncapsulation;
@@ -42,7 +43,8 @@ public class NATTranslation {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for address translation and cannot be used for PAT");
         }
         outsideAddress.setConfiguredForPortTranslation(true);
-        return new NATTranslation(protocol, outsideAddress, outsideInterface, (protocol == IPv4Protocol.TCP) ? outsideAddress.allocateTCPPort() : (protocol == IPv4Protocol.UDP) ? outsideAddress.allocateUDPPort() : null, insideAddress, insideProtocolPort);
+        Integer psi = (protocol == IPv4Protocol.TCP) ? outsideAddress.allocateTCPPort() : (protocol == IPv4Protocol.UDP) ? outsideAddress.allocateUDPPort() : (protocol == IPv4Protocol.ICMP) ? outsideAddress.allocateICMPIdentifier() : null;
+        return new NATTranslation(protocol, outsideAddress, outsideInterface, psi, insideAddress, insideProtocolPort);
     }
 
     private NATTranslation(IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolPort, IPv4Address insideAddress, Integer insideProtocolPort) {
@@ -134,7 +136,15 @@ public class NATTranslation {
                                 break;
                             }
                             case ICMP: {
-                                throw new NATTranslationException("ICMP NAT Translation is not yet supported");
+                                ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
+                                if (icmpEncapsulation.getIdentifier() == this.getInsideProtocolSpecificIdentifier()) {
+                                    icmpEncapsulation.setIdentifier(this.getOutsideProtocolSpecificIdentifier());
+                                    icmpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
+                                    icmpEncapsulation.calculateICMPChecksum();
+                                    icmpEncapsulation.getPacket().calculateIPv4Checksum();
+                                    this.updateLastActivity();
+                                    return true;
+                                }
                             }
                         }
                     } else if (this.getProtocol() == packet.getIPv4Protocol() && this.getOutsideInterface().equals(packet.getIngressNetworkInterface()) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
@@ -169,12 +179,22 @@ public class NATTranslation {
                                 break;
                             }
                             case ICMP: {
-                                throw new NATTranslationException("ICMP NAT Translation is not yet supported");
+                                ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
+                                if (icmpEncapsulation.getIdentifier() == this.getOutsideProtocolSpecificIdentifier() && icmpEncapsulation.isQueryBasedMessage()) {
+                                    icmpEncapsulation.setIdentifier(this.getInsideProtocolSpecificIdentifier());
+                                    icmpEncapsulation.getPacket().setDestinationIPv4Address(this.getInsideAddress());
+                                    icmpEncapsulation.getPacket().setDestinationHardwareAddress(MACAddress.ZERO);
+                                    icmpEncapsulation.calculateICMPChecksum();
+                                    icmpEncapsulation.getPacket().calculateIPv4Checksum();
+                                    packet.setProcessingChain(ProcessingChain.FORWARD);
+                                    this.updateLastActivity();
+                                    return true;
+                                }
                             }
                         }
                     }
                 } catch (PacketException | IOException ex) {
-                    throw new NATTranslationException("Packet NAT Translation has failet", ex);
+                    throw new NATTranslationException("Packet NAT Translation has failed", ex);
                 }
             } else {
                 throw new NATTranslationException("NAT Translation cannot process packet in processing chain " + packet.getProcessingChain().name() + " of ethernet type " + packet.getEthernetType().name());
