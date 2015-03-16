@@ -55,7 +55,6 @@ public class RouterController {
             this.loadConfiguration();
             this.startPacketProcessor();
             this.loadModules();
-            this.writeConfiguration();
             this.startModules();
             this.startAPIServer();
             this.bootFinishDate = new Date();
