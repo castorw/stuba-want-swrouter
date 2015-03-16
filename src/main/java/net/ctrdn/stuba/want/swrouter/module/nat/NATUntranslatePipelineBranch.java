@@ -39,7 +39,7 @@ public class NATUntranslatePipelineBranch extends DefaultPipelineBranch {
             try {
                 for (int i = this.natModule.getTranslationList().size() - 1; i > -1; i--) {
                     NATTranslation translation = this.natModule.getTranslationList().get(i);
-                    if (translation.matchAndApply(packet)) {
+                    if (translation.apply(packet)) {
                         this.logger.debug("NAT Translation {} has address/port untranslation on packet {}", translation, packet.getPacketIdentifier().getUuid());
                         return PipelineResult.CONTINUE;
                     }

@@ -39,14 +39,14 @@ public class SNATInterfaceRule extends DefaultNATRule {
                         TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
                         NATTranslation xlation = NATTranslation.newPortTranslation(IPv4Protocol.TCP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
                         this.getNatModule().installTranslation(xlation);
-                        xlation.matchAndApply(packet);
+                        xlation.apply(packet);
                         return NATRuleResult.HANDLED;
                     }
                     case UDP: {
                         UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
                         NATTranslation xlation = NATTranslation.newPortTranslation(IPv4Protocol.UDP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
                         this.getNatModule().installTranslation(xlation);
-                        xlation.matchAndApply(packet);
+                        xlation.apply(packet);
                         return NATRuleResult.HANDLED;
                     }
                     default: {

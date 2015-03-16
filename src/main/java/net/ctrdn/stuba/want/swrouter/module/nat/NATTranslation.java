@@ -23,9 +23,9 @@ public class NATTranslation {
     private final IPv4Protocol protocol;
     private final NetworkInterface outsideInterface;
     private final NATAddress outsideAddress;
-    private final Integer outsideProtocolPort;
+    private final Integer outsideProtocolSpecificIdentifier;
     private final IPv4Address insideAddress;
-    private final Integer insideProtocolPort;
+    private final Integer insideProtocolSpecificIdentifier;
     private boolean active = true;
     private Date lastActivityDate;
 
@@ -50,8 +50,8 @@ public class NATTranslation {
         this.outsideAddress = outsideAddress;
         this.outsideInterface = outsideInterface;
         this.insideAddress = insideAddress;
-        this.insideProtocolPort = insideProtocolPort;
-        this.outsideProtocolPort = outsideProtocolPort;
+        this.insideProtocolSpecificIdentifier = insideProtocolPort;
+        this.outsideProtocolSpecificIdentifier = outsideProtocolPort;
         this.lastActivityDate = new Date();
     }
 
@@ -67,16 +67,16 @@ public class NATTranslation {
         return outsideAddress;
     }
 
-    public Integer getOutsideProtocolPort() {
-        return outsideProtocolPort;
+    public Integer getOutsideProtocolSpecificIdentifier() {
+        return outsideProtocolSpecificIdentifier;
     }
 
     public IPv4Address getInsideAddress() {
         return insideAddress;
     }
 
-    public Integer getInsideProtocolPort() {
-        return insideProtocolPort;
+    public Integer getInsideProtocolSpecificIdentifier() {
+        return insideProtocolSpecificIdentifier;
     }
 
     public boolean isActive() {
@@ -92,11 +92,11 @@ public class NATTranslation {
         if (this.protocol == null) {
             return "NAT inside " + this.getInsideAddress() + " <---> outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName();
         } else {
-            return "PAT inside " + this.getInsideAddress() + " " + this.getProtocol().name() + "/" + this.getInsideProtocolPort() + " <---> outside " + this.getOutsideAddress().getAddress() + " " + this.getProtocol().name() + "/" + this.getOutsideProtocolPort() + " on " + this.getOutsideInterface().getName();
+            return "PAT inside " + this.getInsideAddress() + " " + this.getProtocol().name() + "/" + this.getInsideProtocolSpecificIdentifier() + " <---> outside " + this.getOutsideAddress().getAddress() + " " + this.getProtocol().name() + "/" + this.getOutsideProtocolSpecificIdentifier() + " on " + this.getOutsideInterface().getName();
         }
     }
 
-    public boolean matchAndApply(Packet packet) throws NATTranslationException {
+    public boolean apply(Packet packet) throws NATTranslationException {
         if (this.isActive()) {
             if ((packet.getProcessingChain() == ProcessingChain.INPUT || packet.getProcessingChain() == ProcessingChain.FORWARD) && packet.getEthernetType() == EthernetType.IPV4) {
                 try {
@@ -111,8 +111,8 @@ public class NATTranslation {
                         switch (this.getProtocol()) {
                             case TCP: {
                                 TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
-                                if (tcpEncapsulation.getSourcePort() == this.getInsideProtocolPort()) {
-                                    tcpEncapsulation.setSourcePort(this.getOutsideProtocolPort());
+                                if (tcpEncapsulation.getSourcePort() == this.getInsideProtocolSpecificIdentifier()) {
+                                    tcpEncapsulation.setSourcePort(this.getOutsideProtocolSpecificIdentifier());
                                     tcpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     tcpEncapsulation.calculateTCPChecksum();
                                     tcpEncapsulation.getPacket().calculateIPv4Checksum();
@@ -123,8 +123,8 @@ public class NATTranslation {
                             }
                             case UDP: {
                                 UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
-                                if (udpEncapsulation.getSourcePort() == this.getInsideProtocolPort()) {
-                                    udpEncapsulation.setSourcePort(this.getOutsideProtocolPort());
+                                if (udpEncapsulation.getSourcePort() == this.getInsideProtocolSpecificIdentifier()) {
+                                    udpEncapsulation.setSourcePort(this.getOutsideProtocolSpecificIdentifier());
                                     udpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     udpEncapsulation.calculateUDPChecksum();
                                     udpEncapsulation.getPacket().calculateIPv4Checksum();
@@ -142,8 +142,8 @@ public class NATTranslation {
                         switch (this.getProtocol()) {
                             case TCP: {
                                 TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
-                                if (tcpEncapsulation.getDestinationPort() == this.getOutsideProtocolPort()) {
-                                    tcpEncapsulation.setDestinationPort(this.getInsideProtocolPort());
+                                if (tcpEncapsulation.getDestinationPort() == this.getOutsideProtocolSpecificIdentifier()) {
+                                    tcpEncapsulation.setDestinationPort(this.getInsideProtocolSpecificIdentifier());
                                     tcpEncapsulation.getPacket().setDestinationIPv4Address(this.getInsideAddress());
                                     tcpEncapsulation.getPacket().setDestinationHardwareAddress(MACAddress.ZERO);
                                     tcpEncapsulation.calculateTCPChecksum();
@@ -156,8 +156,8 @@ public class NATTranslation {
                             }
                             case UDP: {
                                 UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
-                                if (udpEncapsulation.getDestinationPort() == this.getOutsideProtocolPort()) {
-                                    udpEncapsulation.setDestinationPort(this.getInsideProtocolPort());
+                                if (udpEncapsulation.getDestinationPort() == this.getOutsideProtocolSpecificIdentifier()) {
+                                    udpEncapsulation.setDestinationPort(this.getInsideProtocolSpecificIdentifier());
                                     udpEncapsulation.getPacket().setDestinationIPv4Address(this.getInsideAddress());
                                     udpEncapsulation.getPacket().setDestinationHardwareAddress(MACAddress.ZERO);
                                     udpEncapsulation.calculateUDPChecksum();
