@@ -13,11 +13,14 @@ import net.ctrdn.stuba.want.swrouter.core.processing.TCPForIPv4PacketEncapsulati
 import net.ctrdn.stuba.want.swrouter.core.processing.UDPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.exception.NATException;
 import net.ctrdn.stuba.want.swrouter.exception.NATTranslationException;
+import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
+import net.ctrdn.stuba.want.swrouter.module.arpmanager.ARPManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 
 public class NATTranslation {
 
+    private final NATModule natModule;
     private final IPv4Protocol protocol;
     private final NetworkInterface outsideInterface;
     private final NATAddress outsideAddress;
@@ -27,24 +30,25 @@ public class NATTranslation {
     private boolean active = true;
     private Date lastActivityDate;
 
-    public final static NATTranslation newAddressTranslation(NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress) throws NATTranslationException {
+    public final static NATTranslation newAddressTranslation(NATModule natModule, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress) throws NATTranslationException {
         if (outsideAddress.isConfiguredForPortTranslation()) {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for port translation and cannot be used for NAT");
         }
         outsideAddress.setConfiguredForAddressTranslation(true);
-        return new NATTranslation(null, outsideAddress, outsideInterface, null, insideAddress, null);
+        return new NATTranslation(natModule, null, outsideAddress, outsideInterface, null, insideAddress, null);
     }
 
-    public final static NATTranslation newPortTranslation(IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolPort) throws NATException {
+    public final static NATTranslation newPortTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolPort) throws NATException {
         if (outsideAddress.isConfiguredForAddressTranslation()) {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for address translation and cannot be used for PAT");
         }
         outsideAddress.setConfiguredForPortTranslation(true);
         Integer psi = (protocol == IPv4Protocol.TCP) ? outsideAddress.allocateTCPPort() : (protocol == IPv4Protocol.UDP) ? outsideAddress.allocateUDPPort() : (protocol == IPv4Protocol.ICMP) ? outsideAddress.allocateICMPIdentifier() : null;
-        return new NATTranslation(protocol, outsideAddress, outsideInterface, psi, insideAddress, insideProtocolPort);
+        return new NATTranslation(natModule, protocol, outsideAddress, outsideInterface, psi, insideAddress, insideProtocolPort);
     }
 
-    private NATTranslation(IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolPort, IPv4Address insideAddress, Integer insideProtocolPort) {
+    private NATTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolPort, IPv4Address insideAddress, Integer insideProtocolPort) throws NATTranslationException {
+        this.natModule = natModule;
         this.protocol = protocol;
         this.outsideAddress = outsideAddress;
         this.outsideInterface = outsideInterface;
@@ -52,6 +56,14 @@ public class NATTranslation {
         this.insideProtocolSpecificIdentifier = insideProtocolPort;
         this.outsideProtocolSpecificIdentifier = outsideProtocolPort;
         this.lastActivityDate = new Date();
+        if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(outsideAddress.getAddress())) {
+            try {
+                ARPManagerModule amm = this.natModule.getRouterController().getModule(ARPManagerModule.class);
+                amm.addVirtualAddress(outsideAddress.getAddress(), outsideInterface);
+            } catch (NoSuchModuleException ex) {
+                throw new NATTranslationException("Failed to setup translation", ex);
+            }
+        }
     }
 
     public IPv4Protocol getProtocol() {
@@ -106,13 +118,15 @@ public class NATTranslation {
                     if (packet.getProcessingChain() == ProcessingChain.FORWARD && this.getProtocol() == null && this.getOutsideInterface().equals(packet.getEgressNetworkInterface()) && this.getInsideAddress().equals(packet.getSourceIPv4Address())) {
                         // NAT XLATE
                         packet.setSourceIPv4Address(this.getOutsideAddress().getAddress());
+                        this.calculateProtocolChecksumIfNeeded(packet);
                         packet.calculateIPv4Checksum();
                         this.updateLastActivity();
                         return true;
-                    } else if (this.getProtocol() == null && this.getOutsideAddress().equals(packet.getIngressNetworkInterface()) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
+                    } else if (this.getProtocol() == null && this.getOutsideInterface().equals(packet.getIngressNetworkInterface()) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
                         // NAT UNXLATE
                         packet.setDestinationIPv4Address(this.getInsideAddress());
                         packet.setDestinationHardwareAddress(MACAddress.ZERO);
+                        this.calculateProtocolChecksumIfNeeded(packet);
                         packet.calculateIPv4Checksum();
                         packet.setProcessingChain(ProcessingChain.FORWARD);
                         this.updateLastActivity();
@@ -216,6 +230,18 @@ public class NATTranslation {
             }
         }
         return false;
+    }
+
+    private void calculateProtocolChecksumIfNeeded(Packet packet) throws PacketException, IOException {
+        if (packet.getEthernetType() == EthernetType.IPV4) {
+            if (packet.getIPv4Protocol() == IPv4Protocol.TCP) {
+                TCPForIPv4PacketEncapsulation encap = new TCPForIPv4PacketEncapsulation(packet);
+                encap.calculateTCPChecksum();
+            } else if (packet.getIPv4Protocol() == IPv4Protocol.UDP) {
+                UDPForIPv4PacketEncapsulation encap = new UDPForIPv4PacketEncapsulation(packet);
+                encap.calculateUDPChecksum();
+            }
+        }
     }
 
     private void updateLastActivity() {
