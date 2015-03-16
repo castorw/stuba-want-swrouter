@@ -125,7 +125,7 @@ public class NetworkInterfaceImpl implements NetworkInterface {
             if (this.pcap == null) {
                 StringBuilder errbuf = new StringBuilder();
                 this.logger.debug("Starting packet receiver for interface " + this.pcapInterface.getName());
-                this.pcap = Pcap.openLive(this.pcapInterface.getName(), 64 * 1024, Pcap.MODE_NON_PROMISCUOUS, 10, errbuf);
+                this.pcap = Pcap.openLive(this.pcapInterface.getName(), 64 * 1024, Pcap.MODE_PROMISCUOUS, 10, errbuf);
                 this.pcap.setBufferSize(4000000);
 
                 if (pcap == null) {
