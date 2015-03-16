@@ -40,7 +40,7 @@ public class NATTranslatePipelineBranch extends DefaultPipelineBranch {
                 for (int i = this.natModule.getTranslationList().size() - 1; i > -1; i--) {
                     NATTranslation translation = this.natModule.getTranslationList().get(i);
                     if (translation.apply(packet)) {
-                        this.logger.debug("Packet {} has been translated using {}", packet.getPacketIdentifier().getUuid(), packet);
+                        this.logger.debug("Packet {} has been translated using {}", packet.getPacketIdentifier().getUuid(), translation);
                         return PipelineResult.CONTINUE;
                     }
                 }
