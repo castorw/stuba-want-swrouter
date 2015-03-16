@@ -22,6 +22,7 @@ import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.InterfaceManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 import net.ctrdn.stuba.want.swrouter.module.nat.rule.SNATInterfaceRule;
+import net.ctrdn.stuba.want.swrouter.module.nat.rule.SNATPoolRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,11 +82,24 @@ public class NATModule extends DefaultRouterModule {
                                 this.installNATRule(rule);
                                 break;
                             }
+                            case "SNAT_POOL": {
+                                int priority = ruleConfigObject.getInt("Priority");
+                                IPv4Prefix insidePrefix = IPv4Prefix.fromString(ruleConfigObject.getString("InsidePrefix"));
+                                String outsidePoolName = ruleConfigObject.getString("OutsidePool");
+                                NATPool pool = this.getNATPool(outsidePoolName);
+                                if (pool != null) {
+                                    SNATPoolRule rule = new SNATPoolRule(this, priority, insidePrefix, pool, ruleConfigObject.getBoolean("Overload"));
+                                    this.installNATRule(rule);
+                                } else {
+                                    this.logger.warn("NAT Address Pool named {} does not exist - not loading rule", outsidePoolName);
+                                }
+                                break;
+                            }
                             default: {
                                 this.logger.warn("Not loading unsupported NAT rule type {}", type);
                             }
                         }
-                    } catch (IPv4MathException ex) {
+                    } catch (IPv4MathException | NATException ex) {
                         this.logger.warn("Failed to load NAT rule of type {}", type, ex);
                     } catch (NoSuchModuleException ex) {
                         throw new RuntimeException(ex);
@@ -124,9 +138,16 @@ public class NATModule extends DefaultRouterModule {
             ruleJob.add("Priority", rule.getPriority());
             if (SNATInterfaceRule.class.isAssignableFrom(rule.getClass())) {
                 SNATInterfaceRule ruleCast = (SNATInterfaceRule) rule;
-                ruleJob.add("Type", "SNAT_INTERFACE");
+                ruleJob.add("Type", rule.getTypeString());
                 ruleJob.add("InsidePrefix", ruleCast.getInsidePrefix().toString());
                 ruleJob.add("OutsideInterface", ruleCast.getOutsideInterface().getName());
+                rulesJab.add(ruleJob);
+            } else if (SNATPoolRule.class.isAssignableFrom(rule.getClass())) {
+                SNATPoolRule ruleCast = (SNATPoolRule) rule;
+                ruleJob.add("Type", rule.getTypeString());
+                ruleJob.add("InsidePrefix", ruleCast.getInsidePrefix().toString());
+                ruleJob.add("OutsidePool", ruleCast.getOutsidePool().getName());
+                ruleJob.add("Overload", ruleCast.isOverloadEnabled());
                 rulesJab.add(ruleJob);
             }
         }
@@ -144,7 +165,7 @@ public class NATModule extends DefaultRouterModule {
                 return o1.getPriority() < o2.getPriority() ? -1 : o1.getPriority() == o2.getPriority() ? 0 : 1;
             }
         });
-        this.logger.debug("Installed NAT rule Priority#{} {}", rule.getPriority(), rule.getClass().getName());
+        this.logger.debug("Installed NAT rule Priority#{} {}", rule.getPriority(), rule);
     }
 
     @Override
@@ -213,4 +234,16 @@ public class NATModule extends DefaultRouterModule {
         return this.getNATAddress(networkInterface.getIPv4InterfaceAddress().getAddress());
     }
 
+    public NATPool getNATPool(String name) {
+        for (NATPool pool : this.poolList) {
+            if (pool.getName().equals(name)) {
+                return pool;
+            }
+        }
+        return null;
+    }
+
+    public RouterController getRouterController() {
+        return this.routerController;
+    }
 }
