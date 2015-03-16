@@ -92,6 +92,6 @@ public class SNATInterfaceRule extends DefaultNATRule {
 
     @Override
     public String toString() {
-        return this.getPriority() + " SNAT_INTERFACE/PAT inside " + this.getInsidePrefix() + " <---> outside " + this.getOutsideInterface().getIPv4InterfaceAddress().getAddress() + " on " + this.getOutsideInterface().getName();
+        return this.getPriority() + " SNAT_INTERFACE/PAT inside " + this.getInsidePrefix() + " <---> outside " + this.getOutsideInterface().getName();
     }
 }
