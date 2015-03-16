@@ -1,7 +1,9 @@
 package net.ctrdn.stuba.want.swrouter.module.arpmanager;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -48,6 +50,7 @@ public class ARPManagerModule extends DefaultRouterModule {
     private final Logger logger = LoggerFactory.getLogger(ARPManagerModule.class);
     private final ARPPipelineBranch pipelineBranch;
     private final List<ARPTableEntry> arpTable = new CopyOnWriteArrayList<>();
+    private final Map<IPv4Address, NetworkInterface> virtualAddressMap = new HashMap<>();
     private final ARPTableWatchdog arpTableWatchdog;
     private Thread arpTableWatchdogThread;
     private int pipelineResolutionTimeout = 5000;
@@ -132,4 +135,15 @@ public class ARPManagerModule extends DefaultRouterModule {
         this.logger.debug("Updated ARP Table entry {}@{} on {}", entry.getProtocolAddress(), entry.getHardwareAddress(), entry.getNetworkInterface().getName());
     }
 
+    public Map<IPv4Address, NetworkInterface> getVirtualAddressMap() {
+        return virtualAddressMap;
+    }
+
+    public synchronized void addVirtualAddress(IPv4Address address, NetworkInterface iface) {
+        this.virtualAddressMap.put(address, iface);
+    }
+
+    public synchronized void removeVirtualAddress(IPv4Address address, NetworkInterface iface) {
+        this.virtualAddressMap.remove(address, iface);
+    }
 }

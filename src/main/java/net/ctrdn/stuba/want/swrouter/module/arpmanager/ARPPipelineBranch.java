@@ -86,7 +86,7 @@ public class ARPPipelineBranch extends DefaultPipelineBranch {
     }
 
     private boolean processARPRequest(ARPForIPv4PacketEncapsulation requestEncap) {
-        if (requestEncap.getTargetProtocolAddress().equals(requestEncap.getPacket().getIngressNetworkInterface().getIPv4InterfaceAddress().getAddress())) {
+        if (requestEncap.getTargetProtocolAddress().equals(requestEncap.getPacket().getIngressNetworkInterface().getIPv4InterfaceAddress().getAddress()) || (this.arpManagerModule.getVirtualAddressMap().containsKey(requestEncap.getTargetProtocolAddress()) && this.arpManagerModule.getVirtualAddressMap().get(requestEncap.getTargetProtocolAddress()).equals(requestEncap.getPacket().getIngressNetworkInterface()))) {
             try {
                 this.logger.debug("Received ARP request targeted for us from {}@{} on interface {}", requestEncap.getSenderProtocolAddress(), requestEncap.getSenderHardwareAddress(), requestEncap.getPacket().getIngressNetworkInterface().getName());
                 Packet replyPacket = new Packet(42, requestEncap.getPacket().getIngressNetworkInterface());
@@ -99,7 +99,7 @@ public class ARPPipelineBranch extends DefaultPipelineBranch {
                 replyEncap.setProtocolAddressLength((short) 4);
                 replyEncap.setOperation(ARPForIPv4PacketEncapsulation.Operation.REPLY);
                 replyEncap.setSenderHardwareAddress(requestEncap.getPacket().getIngressNetworkInterface().getHardwareAddress());
-                replyEncap.setSenderProtocolAddress(requestEncap.getPacket().getIngressNetworkInterface().getIPv4InterfaceAddress().getAddress());
+                replyEncap.setSenderProtocolAddress(requestEncap.getTargetProtocolAddress());
                 replyEncap.setTargetHardwareAddress(requestEncap.getSenderHardwareAddress());
                 replyEncap.setTargetProtocolAddress(requestEncap.getSenderProtocolAddress());
                 this.arpManagerModule.getRouterController().getPacketProcessor().processPacket(replyEncap.getPacket());
