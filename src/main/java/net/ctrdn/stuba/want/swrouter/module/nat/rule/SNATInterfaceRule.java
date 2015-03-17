@@ -119,7 +119,7 @@ public class SNATInterfaceRule extends DefaultNATRule {
 
     @Override
     public String toString() {
-        return "SNAT_INTERFACE/PAT inside " + this.getInsidePrefix() + " <---> outside " + this.getOutsideInterface().getName();
+        return "<RULE:SNAT_INTERFACE/PAT inside " + this.getInsidePrefix() + " <---> outside " + this.getOutsideInterface().getName() + ">";
     }
 
     public List<NetworkInterface> getEcmpOutsideInterfaceList() {

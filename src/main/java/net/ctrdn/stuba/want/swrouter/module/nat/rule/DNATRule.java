@@ -142,11 +142,11 @@ public class DNATRule extends DefaultNATRule {
     @Override
     public String toString() {
         if (this.protocol == null) {
-            return "DNAT/NAT outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName() + " <---> inside " + this.getInsideAddress();
+            return "<RULE:DNAT/NAT outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName() + " <---> inside " + this.getInsideAddress() + ">";
         } else if (this.protocol == IPv4Protocol.ICMP) {
-            return "DNAT/PAT outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName() + " ICMP <---> inside " + this.getInsideAddress() + " ICMP";
+            return "<RULE:DNAT/PAT outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName() + " ICMP <---> inside " + this.getInsideAddress() + " ICMP>";
         } else {
-            return "DNAT/PAT outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName() + " " + this.protocol.name() + "/" + this.outsideProtocolSpecificIdentifier + " <---> inside " + this.getInsideAddress() + " " + this.protocol.name() + "/" + this.insideProtocolSpecificIdentifier;
+            return "<RULE:DNAT/PAT outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName() + " " + this.protocol.name() + "/" + this.outsideProtocolSpecificIdentifier + " <---> inside " + this.getInsideAddress() + " " + this.protocol.name() + "/" + this.insideProtocolSpecificIdentifier + ">";
         }
     }
 

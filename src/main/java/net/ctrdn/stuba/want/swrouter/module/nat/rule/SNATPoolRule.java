@@ -173,9 +173,9 @@ public class SNATPoolRule extends DefaultNATRule {
     @Override
     public String toString() {
         if (this.overloadEnabled) {
-            return "SNAT_POOL/PAT inside " + this.getInsidePrefix() + " <---> outside pool " + this.getOutsidePool().getName();
+            return "<RULE:SNAT_POOL/PAT inside " + this.getInsidePrefix() + " <---> outside pool " + this.getOutsidePool().getName() + ">";
         } else {
-            return "SNAT_POOL/NAT inside " + this.getInsidePrefix() + " <---> outside pool " + this.getOutsidePool().getName();
+            return "<RULE:SNAT_POOL/NAT inside " + this.getInsidePrefix() + " <---> outside pool " + this.getOutsidePool().getName() + ">";
         }
     }
 
