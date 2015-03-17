@@ -1,7 +1,9 @@
 package net.ctrdn.stuba.want.swrouter.module.nat;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import net.ctrdn.stuba.want.swrouter.common.EthernetType;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
@@ -27,6 +29,7 @@ public class NATTranslation {
     private final Integer outsideProtocolSpecificIdentifier;
     private final IPv4Address insideAddress;
     private final Integer insideProtocolSpecificIdentifier;
+    private final List<NetworkInterface> ecmpOutsideInterfaceList = new ArrayList<>();
     private boolean active = true;
     private Date lastActivityDate;
 
@@ -38,25 +41,32 @@ public class NATTranslation {
         return new NATTranslation(natModule, null, outsideAddress, outsideInterface, null, insideAddress, null);
     }
 
-    public final static NATTranslation newPortTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolPort) throws NATException {
+    public final static NATTranslation newPortTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier, Integer outsideProtocolSpecificIdentifier) throws NATException {
         if (outsideAddress.isConfiguredForAddressTranslation()) {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for address translation and cannot be used for PAT");
         }
         outsideAddress.setConfiguredForPortTranslation(true);
-        Integer psi = (protocol == IPv4Protocol.TCP) ? outsideAddress.allocateTCPPort() : (protocol == IPv4Protocol.UDP) ? outsideAddress.allocateUDPPort() : (protocol == IPv4Protocol.ICMP) ? outsideAddress.allocateICMPIdentifier() : null;
-        return new NATTranslation(natModule, protocol, outsideAddress, outsideInterface, psi, insideAddress, insideProtocolPort);
+        Integer opsi = outsideProtocolSpecificIdentifier;
+        if (opsi != null && opsi == -1) {
+            opsi = (protocol == IPv4Protocol.TCP) ? outsideAddress.allocateTCPPort() : (protocol == IPv4Protocol.UDP) ? outsideAddress.allocateUDPPort() : (protocol == IPv4Protocol.ICMP) ? outsideAddress.allocateICMPIdentifier() : null;
+        }
+        return new NATTranslation(natModule, protocol, outsideAddress, outsideInterface, opsi, insideAddress, insideProtocolSpecificIdentifier);
     }
 
-    private NATTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolPort, IPv4Address insideAddress, Integer insideProtocolPort) throws NATTranslationException {
+    public final static NATTranslation newPortTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier) throws NATException {
+        return NATTranslation.newPortTranslation(natModule, protocol, outsideAddress, outsideInterface, insideAddress, insideProtocolSpecificIdentifier, -1);
+    }
+
+    private NATTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolSpecificIdentifier, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier) throws NATTranslationException {
         this.natModule = natModule;
         this.protocol = protocol;
         this.outsideAddress = outsideAddress;
         this.outsideInterface = outsideInterface;
         this.insideAddress = insideAddress;
-        this.insideProtocolSpecificIdentifier = insideProtocolPort;
-        this.outsideProtocolSpecificIdentifier = outsideProtocolPort;
+        this.insideProtocolSpecificIdentifier = insideProtocolSpecificIdentifier;
+        this.outsideProtocolSpecificIdentifier = outsideProtocolSpecificIdentifier;
         this.lastActivityDate = new Date();
-        if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(outsideAddress.getAddress())) {
+        if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(this.outsideAddress.getAddress())) {
             try {
                 ARPManagerModule amm = this.natModule.getRouterController().getModule(ARPManagerModule.class);
                 amm.addVirtualAddress(outsideAddress.getAddress(), outsideInterface);
@@ -94,7 +104,15 @@ public class NATTranslation {
         return active;
     }
 
-    public void deactivate() {
+    public void deactivate() throws NATTranslationException {
+        if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(outsideAddress.getAddress())) {
+            try {
+                ARPManagerModule amm = this.natModule.getRouterController().getModule(ARPManagerModule.class);
+                amm.removeVirtualAddress(outsideAddress.getAddress(), outsideInterface);
+            } catch (NoSuchModuleException ex) {
+                throw new NATTranslationException("Failed to setup translation", ex);
+            }
+        }
         this.active = false;
     }
 
@@ -107,7 +125,7 @@ public class NATTranslation {
         if (this.protocol == null) {
             return "NAT inside " + this.getInsideAddress() + " <---> outside " + this.getOutsideAddress().getAddress() + " on " + this.getOutsideInterface().getName();
         } else {
-            return "PAT inside " + this.getInsideAddress() + " " + this.getProtocol().name() + "/" + this.getInsideProtocolSpecificIdentifier() + " <---> outside " + this.getOutsideAddress().getAddress() + " " + this.getProtocol().name() + "/" + this.getOutsideProtocolSpecificIdentifier() + " on " + this.getOutsideInterface().getName();
+            return "PAT inside " + this.getInsideAddress() + " " + this.getProtocol().name() + ((this.getInsideProtocolSpecificIdentifier() != null) ? "/" + this.getInsideProtocolSpecificIdentifier() : "") + " <---> outside " + this.getOutsideAddress().getAddress() + " " + this.getProtocol().name() + ((this.getOutsideProtocolSpecificIdentifier() != null) ? "/" + this.getOutsideProtocolSpecificIdentifier() : "") + " on " + this.getOutsideInterface().getName();
         }
     }
 
@@ -115,14 +133,14 @@ public class NATTranslation {
         if (this.isActive()) {
             if ((packet.getProcessingChain() == ProcessingChain.INPUT || packet.getProcessingChain() == ProcessingChain.FORWARD) && packet.getEthernetType() == EthernetType.IPV4) {
                 try {
-                    if (packet.getProcessingChain() == ProcessingChain.FORWARD && this.getProtocol() == null && this.getOutsideInterface().equals(packet.getEgressNetworkInterface()) && this.getInsideAddress().equals(packet.getSourceIPv4Address())) {
+                    if (packet.getProcessingChain() == ProcessingChain.FORWARD && this.getProtocol() == null && (this.getOutsideInterface().equals(packet.getEgressNetworkInterface()) || this.ecmpOutsideInterfaceList.contains(packet.getEgressNetworkInterface())) && this.getInsideAddress().equals(packet.getSourceIPv4Address())) {
                         // NAT XLATE
                         packet.setSourceIPv4Address(this.getOutsideAddress().getAddress());
                         this.calculateProtocolChecksumIfNeeded(packet);
                         packet.calculateIPv4Checksum();
                         this.updateLastActivity();
                         return true;
-                    } else if (this.getProtocol() == null && this.getOutsideInterface().equals(packet.getIngressNetworkInterface()) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
+                    } else if (this.getProtocol() == null && (this.getOutsideInterface().equals(packet.getIngressNetworkInterface()) || this.ecmpOutsideInterfaceList.contains(packet.getIngressNetworkInterface())) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
                         // NAT UNXLATE
                         packet.setDestinationIPv4Address(this.getInsideAddress());
                         packet.setDestinationHardwareAddress(MACAddress.ZERO);
@@ -131,7 +149,7 @@ public class NATTranslation {
                         packet.setProcessingChain(ProcessingChain.FORWARD);
                         this.updateLastActivity();
                         return true;
-                    } else if (packet.getProcessingChain() == ProcessingChain.FORWARD && this.getProtocol() == packet.getIPv4Protocol() && this.getOutsideInterface().equals(packet.getEgressNetworkInterface()) && this.getInsideAddress().equals(packet.getSourceIPv4Address())) {
+                    } else if (packet.getProcessingChain() == ProcessingChain.FORWARD && this.getProtocol() == packet.getIPv4Protocol() && (this.getOutsideInterface().equals(packet.getEgressNetworkInterface()) || this.ecmpOutsideInterfaceList.contains(packet.getEgressNetworkInterface())) && this.getInsideAddress().equals(packet.getSourceIPv4Address())) {
                         // Possible PAT XLATE
                         switch (this.getProtocol()) {
                             case TCP: {
@@ -162,18 +180,20 @@ public class NATTranslation {
                             }
                             case ICMP: {
                                 ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
-                                if (icmpEncapsulation.getIdentifier() == this.getInsideProtocolSpecificIdentifier()) {
+                                if (this.getInsideProtocolSpecificIdentifier() == null || (icmpEncapsulation.getIdentifier() == this.getInsideProtocolSpecificIdentifier() && icmpEncapsulation.isQueryBasedMessage())) {
                                     // PAT ICMP XLATE
-                                    icmpEncapsulation.setIdentifier(this.getOutsideProtocolSpecificIdentifier());
+                                    if (icmpEncapsulation.isQueryBasedMessage() && this.outsideProtocolSpecificIdentifier != null) {
+                                        icmpEncapsulation.setIdentifier(this.getOutsideProtocolSpecificIdentifier());
+                                        icmpEncapsulation.calculateICMPChecksum();
+                                    }
                                     icmpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
-                                    icmpEncapsulation.calculateICMPChecksum();
                                     icmpEncapsulation.getPacket().calculateIPv4Checksum();
                                     this.updateLastActivity();
                                     return true;
                                 }
                             }
                         }
-                    } else if (this.getProtocol() == packet.getIPv4Protocol() && this.getOutsideInterface().equals(packet.getIngressNetworkInterface()) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
+                    } else if (this.getProtocol() == packet.getIPv4Protocol() && (this.getOutsideInterface().equals(packet.getIngressNetworkInterface()) || this.ecmpOutsideInterfaceList.contains(packet.getIngressNetworkInterface())) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
                         // Possible PAT UNXLATE
                         switch (this.getProtocol()) {
                             case TCP: {
@@ -208,12 +228,14 @@ public class NATTranslation {
                             }
                             case ICMP: {
                                 ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
-                                if (icmpEncapsulation.getIdentifier() == this.getOutsideProtocolSpecificIdentifier() && icmpEncapsulation.isQueryBasedMessage()) {
+                                if (this.getInsideProtocolSpecificIdentifier() == null || (icmpEncapsulation.getIdentifier() == this.getOutsideProtocolSpecificIdentifier() && icmpEncapsulation.isQueryBasedMessage())) {
                                     // PAT ICMP UNXLATE
-                                    icmpEncapsulation.setIdentifier(this.getInsideProtocolSpecificIdentifier());
+                                    if (icmpEncapsulation.isQueryBasedMessage() && this.insideProtocolSpecificIdentifier != null) {
+                                        icmpEncapsulation.setIdentifier(this.getInsideProtocolSpecificIdentifier());
+                                        icmpEncapsulation.calculateICMPChecksum();
+                                    }
                                     icmpEncapsulation.getPacket().setDestinationIPv4Address(this.getInsideAddress());
                                     icmpEncapsulation.getPacket().setDestinationHardwareAddress(MACAddress.ZERO);
-                                    icmpEncapsulation.calculateICMPChecksum();
                                     icmpEncapsulation.getPacket().calculateIPv4Checksum();
                                     packet.setProcessingChain(ProcessingChain.FORWARD);
                                     this.updateLastActivity();
@@ -246,5 +268,9 @@ public class NATTranslation {
 
     private void updateLastActivity() {
         this.lastActivityDate = new Date();
+    }
+
+    public List<NetworkInterface> getEcmpOutsideInterfaceList() {
+        return ecmpOutsideInterfaceList;
     }
 }

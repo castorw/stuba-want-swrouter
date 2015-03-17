@@ -11,6 +11,7 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
+import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.DefaultRouterModule;
@@ -21,6 +22,7 @@ import net.ctrdn.stuba.want.swrouter.exception.NATException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.InterfaceManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
+import net.ctrdn.stuba.want.swrouter.module.nat.rule.DNATRule;
 import net.ctrdn.stuba.want.swrouter.module.nat.rule.SNATInterfaceRule;
 import net.ctrdn.stuba.want.swrouter.module.nat.rule.SNATPoolRule;
 import org.slf4j.Logger;
@@ -32,8 +34,8 @@ public class NATModule extends DefaultRouterModule {
     private int addressTranslationTimeout = 300000;
     private int portTranslationTimeout = 300000;
     private final List<NATPool> poolList = new ArrayList<>();
-    private final List<NATRule> ruleList = new ArrayList<>();
-    private final List<NATTranslation> translationList = new CopyOnWriteArrayList<>();
+    private final List<NATRule> ruleList = Collections.synchronizedList(new ArrayList<NATRule>());
+    private final List<NATTranslation> translationList = Collections.synchronizedList(new CopyOnWriteArrayList<NATTranslation>());
     private final List<NATAddress> addressList = new CopyOnWriteArrayList<>();
 
     public NATModule(RouterController controller) {
@@ -73,9 +75,9 @@ public class NATModule extends DefaultRouterModule {
                 for (JsonObject ruleConfigObject : rulesArray.getValuesAs(JsonObject.class)) {
                     String type = ruleConfigObject.getString("Type");
                     try {
+                        int priority = ruleConfigObject.getInt("Priority");
                         switch (type) {
                             case "SNAT_INTERFACE": {
-                                int priority = ruleConfigObject.getInt("Priority");
                                 IPv4Prefix insidePrefix = IPv4Prefix.fromString(ruleConfigObject.getString("InsidePrefix"));
                                 NetworkInterface iface = this.routerController.getModule(InterfaceManagerModule.class).getNetworkInterfaceByName(ruleConfigObject.getString("OutsideInterface"));
                                 SNATInterfaceRule rule = new SNATInterfaceRule(this, priority, insidePrefix, iface);
@@ -83,7 +85,6 @@ public class NATModule extends DefaultRouterModule {
                                 break;
                             }
                             case "SNAT_POOL": {
-                                int priority = ruleConfigObject.getInt("Priority");
                                 IPv4Prefix insidePrefix = IPv4Prefix.fromString(ruleConfigObject.getString("InsidePrefix"));
                                 String outsidePoolName = ruleConfigObject.getString("OutsidePool");
                                 NATPool pool = this.getNATPool(outsidePoolName);
@@ -93,6 +94,30 @@ public class NATModule extends DefaultRouterModule {
                                 } else {
                                     this.logger.warn("NAT Address Pool named {} does not exist - not loading rule", outsidePoolName);
                                 }
+                                break;
+                            }
+                            case "DNAT": {
+                                NATAddress outsideAddress = this.getNATAddress(IPv4Address.fromString(ruleConfigObject.getString("OutsideAddress")));
+                                IPv4Address insideAddress = IPv4Address.fromString(ruleConfigObject.getString("InsideAddress"));
+                                IPv4Protocol protocol = null;
+                                Integer outsideProtocolSpecificIdentifier = null;
+                                Integer insideProtocolSpecificIdentifier = null;
+                                if (ruleConfigObject.containsKey("ServiceConstraints") && !ruleConfigObject.isNull("ServiceConstraints")) {
+                                    JsonObject serviceConstraintsObject = ruleConfigObject.getJsonObject("ServiceConstraints");
+                                    protocol = IPv4Protocol.valueOf(serviceConstraintsObject.getString("Protocol"));
+                                    if (protocol == IPv4Protocol.TCP || protocol == IPv4Protocol.UDP) {
+                                        outsideProtocolSpecificIdentifier = serviceConstraintsObject.getInt("OutsidePort");
+                                        insideProtocolSpecificIdentifier = serviceConstraintsObject.getInt("InsidePort");
+                                    }
+                                }
+                                DNATRule rule = new DNATRule(this, priority, outsideAddress, insideAddress, protocol, outsideProtocolSpecificIdentifier, insideProtocolSpecificIdentifier);
+                                if (ruleConfigObject.containsKey("ECMPOutsideInterfaces") && !ruleConfigObject.isNull("ECMPOutsideInterfaces")) {
+                                    JsonArray ecmpIfaceArray = ruleConfigObject.getJsonArray("ECMPOutsideInterfaces");
+                                    for (JsonString ecmpIfaceString : ecmpIfaceArray.getValuesAs(JsonString.class)) {
+                                        rule.getEcmpOutsideInterfaceList().add(this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaceByName(ecmpIfaceString.getString()));
+                                    }
+                                }
+                                this.installNATRule(rule);
                                 break;
                             }
                             default: {
@@ -135,19 +160,43 @@ public class NATModule extends DefaultRouterModule {
         JsonArrayBuilder rulesJab = Json.createArrayBuilder();
         for (NATRule rule : this.getRuleList()) {
             JsonObjectBuilder ruleJob = Json.createObjectBuilder();
+            ruleJob.add("Type", rule.getTypeString());
             ruleJob.add("Priority", rule.getPriority());
             if (SNATInterfaceRule.class.isAssignableFrom(rule.getClass())) {
                 SNATInterfaceRule ruleCast = (SNATInterfaceRule) rule;
-                ruleJob.add("Type", rule.getTypeString());
                 ruleJob.add("InsidePrefix", ruleCast.getInsidePrefix().toString());
                 ruleJob.add("OutsideInterface", ruleCast.getOutsideInterface().getName());
                 rulesJab.add(ruleJob);
             } else if (SNATPoolRule.class.isAssignableFrom(rule.getClass())) {
                 SNATPoolRule ruleCast = (SNATPoolRule) rule;
-                ruleJob.add("Type", rule.getTypeString());
                 ruleJob.add("InsidePrefix", ruleCast.getInsidePrefix().toString());
                 ruleJob.add("OutsidePool", ruleCast.getOutsidePool().getName());
                 ruleJob.add("Overload", ruleCast.isOverloadEnabled());
+                rulesJab.add(ruleJob);
+            } else if (DNATRule.class.isAssignableFrom(rule.getClass())) {
+                DNATRule ruleCast = (DNATRule) rule;
+                ruleJob.add("OutsideAddress", ruleCast.getOutsideAddress().getAddress().toString());
+                ruleJob.add("InsideAddress", ruleCast.getInsideAddress().toString());
+                if (ruleCast.getProtocol() != null) {
+                    JsonObjectBuilder serviceConstraintsJob = Json.createObjectBuilder();
+                    serviceConstraintsJob.add("Protocol", ruleCast.getProtocol().name());
+                    if (ruleCast.getProtocol() == IPv4Protocol.TCP || ruleCast.getProtocol() == IPv4Protocol.UDP) {
+                        serviceConstraintsJob.add("OutsidePort", ruleCast.getOutsideProtocolSpecificIdentifier());
+                        serviceConstraintsJob.add("InsidePort", ruleCast.getInsideProtocolSpecificIdentifier());
+                    }
+                    ruleJob.add("ServiceConstraints", serviceConstraintsJob);
+                } else {
+                    ruleJob.addNull("ServiceConstraints");
+                }
+                if (!ruleCast.getEcmpOutsideInterfaceList().isEmpty()) {
+                    JsonArrayBuilder ecmpOutsideIfaceJab = Json.createArrayBuilder();
+                    for (NetworkInterface iface : ruleCast.getEcmpOutsideInterfaceList()) {
+                        ecmpOutsideIfaceJab.add(iface.getName());
+                    }
+                    ruleJob.add("ECMPOutsideInterfaces", ecmpOutsideIfaceJab);
+                } else {
+                    ruleJob.addNull("ECMPOutsideInterfaces");
+                }
                 rulesJab.add(ruleJob);
             }
         }
