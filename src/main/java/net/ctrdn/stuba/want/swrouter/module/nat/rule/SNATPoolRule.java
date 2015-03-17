@@ -14,6 +14,7 @@ import net.ctrdn.stuba.want.swrouter.core.processing.UDPForIPv4PacketEncapsulati
 import net.ctrdn.stuba.want.swrouter.exception.NATException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
+import net.ctrdn.stuba.want.swrouter.module.arpmanager.ARPManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.InterfaceManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 import net.ctrdn.stuba.want.swrouter.module.nat.DefaultNATRule;
@@ -56,6 +57,9 @@ public class SNATPoolRule extends DefaultNATRule {
                 } else {
                     this.availableAddressList.add(na);
                     this.addressInterfaceMap.put(na, iface);
+                    if (!iface.getIPv4InterfaceAddress().getAddress().equals(na.getAddress())) {
+                        this.getNatModule().getRouterController().getModule(ARPManagerModule.class).addVirtualAddress(na.getAddress(), iface);
+                    }
                 }
             }
         } catch (NoSuchModuleException ex) {
@@ -152,8 +156,17 @@ public class SNATPoolRule extends DefaultNATRule {
     }
 
     @Override
-    public void clear() {
-
+    public void clear() throws NATException {
+        try {
+            for (NATAddress na : this.outsidePool.getAddressList()) {
+                NetworkInterface iface = this.addressInterfaceMap.get(na);
+                if (!iface.getIPv4InterfaceAddress().getAddress().equals(na.getAddress())) {
+                    this.getNatModule().getRouterController().getModule(ARPManagerModule.class).addVirtualAddress(na.getAddress(), iface);
+                }
+            }
+        } catch (NoSuchModuleException ex) {
+            throw new NATException("Unable to get required module", ex);
+        }
     }
 
     @Override

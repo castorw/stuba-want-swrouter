@@ -129,17 +129,13 @@ public class DNATRule extends DefaultNATRule {
     }
 
     @Override
-    public void clear() {
+    public void clear() throws NATException {
         try {
             if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(this.outsideAddress.getAddress())) {
                 this.getNatModule().getRouterController().getModule(ARPManagerModule.class).removeVirtualAddress(this.outsideAddress.getAddress(), this.outsideInterface);
             }
         } catch (NoSuchModuleException ex) {
-            try {
-                throw new NATException("Unable to get required module", ex);
-            } catch (NATException ex1) {
-                java.util.logging.Logger.getLogger(DNATRule.class.getName()).log(Level.SEVERE, null, ex1);
-            }
+            throw new NATException("Unable to get required module", ex);
         }
     }
 

@@ -15,9 +15,7 @@ import net.ctrdn.stuba.want.swrouter.core.processing.TCPForIPv4PacketEncapsulati
 import net.ctrdn.stuba.want.swrouter.core.processing.UDPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.exception.NATException;
 import net.ctrdn.stuba.want.swrouter.exception.NATTranslationException;
-import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
-import net.ctrdn.stuba.want.swrouter.module.arpmanager.ARPManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 
 public class NATTranslation {
@@ -66,14 +64,6 @@ public class NATTranslation {
         this.insideProtocolSpecificIdentifier = insideProtocolSpecificIdentifier;
         this.outsideProtocolSpecificIdentifier = outsideProtocolSpecificIdentifier;
         this.lastActivityDate = new Date();
-        if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(this.outsideAddress.getAddress())) {
-            try {
-                ARPManagerModule amm = this.natModule.getRouterController().getModule(ARPManagerModule.class);
-                amm.addVirtualAddress(outsideAddress.getAddress(), outsideInterface);
-            } catch (NoSuchModuleException ex) {
-                throw new NATTranslationException("Failed to setup translation", ex);
-            }
-        }
     }
 
     public IPv4Protocol getProtocol() {
@@ -105,14 +95,6 @@ public class NATTranslation {
     }
 
     public void deactivate() throws NATTranslationException {
-        if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(outsideAddress.getAddress())) {
-            try {
-                ARPManagerModule amm = this.natModule.getRouterController().getModule(ARPManagerModule.class);
-                amm.removeVirtualAddress(outsideAddress.getAddress(), outsideInterface);
-            } catch (NoSuchModuleException ex) {
-                throw new NATTranslationException("Failed to setup translation", ex);
-            }
-        }
         this.active = false;
     }
 

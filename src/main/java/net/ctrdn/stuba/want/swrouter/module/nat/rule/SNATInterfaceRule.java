@@ -9,7 +9,9 @@ import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.TCPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.core.processing.UDPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.exception.NATException;
+import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
+import net.ctrdn.stuba.want.swrouter.module.arpmanager.ARPManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 import net.ctrdn.stuba.want.swrouter.module.nat.DefaultNATRule;
 import net.ctrdn.stuba.want.swrouter.module.nat.NATAddress;
@@ -27,11 +29,18 @@ public class SNATInterfaceRule extends DefaultNATRule {
     private final NATAddress outsideAddress;
     private final List<NetworkInterface> ecmpOutsideInterfaceList = new ArrayList<>();
 
-    public SNATInterfaceRule(NATModule natModule, int priority, IPv4Prefix insidePrefix, NetworkInterface ousideInterface) {
+    public SNATInterfaceRule(NATModule natModule, int priority, IPv4Prefix insidePrefix, NetworkInterface ousideInterface) throws NATException {
         super(natModule, priority);
         this.insidePrefix = insidePrefix;
         this.outsideInterface = ousideInterface;
         this.outsideAddress = this.getNatModule().getNATAddress(this.outsideInterface);
+        try {
+            if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(this.outsideAddress.getAddress())) {
+                this.getNatModule().getRouterController().getModule(ARPManagerModule.class).addVirtualAddress(this.outsideAddress.getAddress(), this.outsideInterface);
+            }
+        } catch (NoSuchModuleException ex) {
+            throw new NATException("Unable to get required module", ex);
+        }
     }
 
     @Override
@@ -93,7 +102,14 @@ public class SNATInterfaceRule extends DefaultNATRule {
     }
 
     @Override
-    public void clear() {
+    public void clear() throws NATException {
+        try {
+            if (!this.outsideInterface.getIPv4InterfaceAddress().getAddress().equals(this.outsideAddress.getAddress())) {
+                this.getNatModule().getRouterController().getModule(ARPManagerModule.class).removeVirtualAddress(this.outsideAddress.getAddress(), this.outsideInterface);
+            }
+        } catch (NoSuchModuleException ex) {
+            throw new NATException("Unable to get required module", ex);
+        }
     }
 
     @Override
