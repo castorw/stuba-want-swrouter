@@ -140,7 +140,9 @@ public class ARPManagerModule extends DefaultRouterModule {
     }
 
     public synchronized void addVirtualAddress(IPv4Address address, NetworkInterface iface) {
-        this.virtualAddressMap.put(address, iface);
+        if (!this.virtualAddressMap.containsKey(address)) {
+            this.virtualAddressMap.put(address, iface);
+        }
     }
 
     public synchronized void removeVirtualAddress(IPv4Address address, NetworkInterface iface) {
