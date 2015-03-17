@@ -31,6 +31,7 @@ public class SNATPoolRule extends DefaultNATRule {
     private final IPv4Prefix insidePrefix;
     private final NATPool outsidePool;
     private final boolean overloadEnabled;
+    private final List<NetworkInterface> ecmpOutsideInterfaceList = new ArrayList<>();
 
     private final List<NATAddress> availableAddressList = new ArrayList<>();
     private final List<NATAddress> usedAddressList = new ArrayList<>();
@@ -109,6 +110,9 @@ public class SNATPoolRule extends DefaultNATRule {
                             return NATRuleResult.DROP;
                         }
                     }
+                    for (NetworkInterface ecmpIface : this.ecmpOutsideInterfaceList) {
+                        xlation.getEcmpOutsideInterfaceList().add(ecmpIface);
+                    }
                     this.getNatModule().installTranslation(xlation);
                     xlation.apply(packet);
                     return NATRuleResult.HANDLED;
@@ -127,6 +131,9 @@ public class SNATPoolRule extends DefaultNATRule {
                     this.logger.debug("Created address translation for {} via {} on interface {}", packet.getSourceIPv4Address(), natAddress.getAddress(), packet.getEgressNetworkInterface().getName());
                     this.usedAddressList.add(natAddress);
                     NATTranslation xlation = NATTranslation.newAddressTranslation(this.getNatModule(), natAddress, packet.getEgressNetworkInterface(), packet.getSourceIPv4Address());
+                    for (NetworkInterface ecmpIface : this.ecmpOutsideInterfaceList) {
+                        xlation.getEcmpOutsideInterfaceList().add(ecmpIface);
+                    }
                     this.getNatModule().installTranslation(xlation);
                     xlation.apply(packet);
                     return NATRuleResult.HANDLED;
@@ -168,5 +175,9 @@ public class SNATPoolRule extends DefaultNATRule {
 
     public boolean isOverloadEnabled() {
         return overloadEnabled;
+    }
+
+    public List<NetworkInterface> getEcmpOutsideInterfaceList() {
+        return ecmpOutsideInterfaceList;
     }
 }

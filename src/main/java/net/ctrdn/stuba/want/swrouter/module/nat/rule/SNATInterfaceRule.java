@@ -1,5 +1,7 @@
 package net.ctrdn.stuba.want.swrouter.module.nat.rule;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.processing.ICMPForIPv4QueryPacketEncapsulation;
@@ -23,6 +25,7 @@ public class SNATInterfaceRule extends DefaultNATRule {
     private final IPv4Prefix insidePrefix;
     private final NetworkInterface outsideInterface;
     private final NATAddress outsideAddress;
+    private final List<NetworkInterface> ecmpOutsideInterfaceList = new ArrayList<>();
 
     public SNATInterfaceRule(NATModule natModule, int priority, IPv4Prefix insidePrefix, NetworkInterface ousideInterface) {
         super(natModule, priority);
@@ -62,6 +65,9 @@ public class SNATInterfaceRule extends DefaultNATRule {
                         return NATRuleResult.DROP;
                     }
                 }
+                for (NetworkInterface ecmpIface : this.ecmpOutsideInterfaceList) {
+                    xlation.getEcmpOutsideInterfaceList().add(ecmpIface);
+                }
                 this.getNatModule().installTranslation(xlation);
                 xlation.apply(packet);
                 return NATRuleResult.HANDLED;
@@ -98,5 +104,9 @@ public class SNATInterfaceRule extends DefaultNATRule {
     @Override
     public String toString() {
         return "SNAT_INTERFACE/PAT inside " + this.getInsidePrefix() + " <---> outside " + this.getOutsideInterface().getName();
+    }
+
+    public List<NetworkInterface> getEcmpOutsideInterfaceList() {
+        return ecmpOutsideInterfaceList;
     }
 }

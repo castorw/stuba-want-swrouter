@@ -81,6 +81,12 @@ public class NATModule extends DefaultRouterModule {
                                 IPv4Prefix insidePrefix = IPv4Prefix.fromString(ruleConfigObject.getString("InsidePrefix"));
                                 NetworkInterface iface = this.routerController.getModule(InterfaceManagerModule.class).getNetworkInterfaceByName(ruleConfigObject.getString("OutsideInterface"));
                                 SNATInterfaceRule rule = new SNATInterfaceRule(this, priority, insidePrefix, iface);
+                                if (ruleConfigObject.containsKey("ECMPOutsideInterfaces") && !ruleConfigObject.isNull("ECMPOutsideInterfaces")) {
+                                    JsonArray ecmpIfaceArray = ruleConfigObject.getJsonArray("ECMPOutsideInterfaces");
+                                    for (JsonString ecmpIfaceString : ecmpIfaceArray.getValuesAs(JsonString.class)) {
+                                        rule.getEcmpOutsideInterfaceList().add(this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaceByName(ecmpIfaceString.getString()));
+                                    }
+                                }
                                 this.installNATRule(rule);
                                 break;
                             }
@@ -90,6 +96,12 @@ public class NATModule extends DefaultRouterModule {
                                 NATPool pool = this.getNATPool(outsidePoolName);
                                 if (pool != null) {
                                     SNATPoolRule rule = new SNATPoolRule(this, priority, insidePrefix, pool, ruleConfigObject.getBoolean("Overload"));
+                                    if (ruleConfigObject.containsKey("ECMPOutsideInterfaces") && !ruleConfigObject.isNull("ECMPOutsideInterfaces")) {
+                                        JsonArray ecmpIfaceArray = ruleConfigObject.getJsonArray("ECMPOutsideInterfaces");
+                                        for (JsonString ecmpIfaceString : ecmpIfaceArray.getValuesAs(JsonString.class)) {
+                                            rule.getEcmpOutsideInterfaceList().add(this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaceByName(ecmpIfaceString.getString()));
+                                        }
+                                    }
                                     this.installNATRule(rule);
                                 } else {
                                     this.logger.warn("NAT Address Pool named {} does not exist - not loading rule", outsidePoolName);
@@ -166,12 +178,30 @@ public class NATModule extends DefaultRouterModule {
                 SNATInterfaceRule ruleCast = (SNATInterfaceRule) rule;
                 ruleJob.add("InsidePrefix", ruleCast.getInsidePrefix().toString());
                 ruleJob.add("OutsideInterface", ruleCast.getOutsideInterface().getName());
+                if (!ruleCast.getEcmpOutsideInterfaceList().isEmpty()) {
+                    JsonArrayBuilder ecmpOutsideIfaceJab = Json.createArrayBuilder();
+                    for (NetworkInterface iface : ruleCast.getEcmpOutsideInterfaceList()) {
+                        ecmpOutsideIfaceJab.add(iface.getName());
+                    }
+                    ruleJob.add("ECMPOutsideInterfaces", ecmpOutsideIfaceJab);
+                } else {
+                    ruleJob.addNull("ECMPOutsideInterfaces");
+                }
                 rulesJab.add(ruleJob);
             } else if (SNATPoolRule.class.isAssignableFrom(rule.getClass())) {
                 SNATPoolRule ruleCast = (SNATPoolRule) rule;
                 ruleJob.add("InsidePrefix", ruleCast.getInsidePrefix().toString());
                 ruleJob.add("OutsidePool", ruleCast.getOutsidePool().getName());
                 ruleJob.add("Overload", ruleCast.isOverloadEnabled());
+                if (!ruleCast.getEcmpOutsideInterfaceList().isEmpty()) {
+                    JsonArrayBuilder ecmpOutsideIfaceJab = Json.createArrayBuilder();
+                    for (NetworkInterface iface : ruleCast.getEcmpOutsideInterfaceList()) {
+                        ecmpOutsideIfaceJab.add(iface.getName());
+                    }
+                    ruleJob.add("ECMPOutsideInterfaces", ecmpOutsideIfaceJab);
+                } else {
+                    ruleJob.addNull("ECMPOutsideInterfaces");
+                }
                 rulesJab.add(ruleJob);
             } else if (DNATRule.class.isAssignableFrom(rule.getClass())) {
                 DNATRule ruleCast = (DNATRule) rule;
