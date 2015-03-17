@@ -48,8 +48,18 @@ public class NATUntranslatePipelineBranch extends DefaultPipelineBranch {
                 this.logger.warn("NAT Translation processing has failed un-translating packet {}", packet.getPacketIdentifier().getUuid().toString(), ex);
                 return PipelineResult.DROP;
             }
-            this.logger.trace("No NAT UNXLATE done on packet {}", packet.getPacketIdentifier().getUuid().toString());
+            for (NATRule rule : this.natModule.getRuleList()) {
+                NATRuleResult result = rule.untranslate(packet);
+                if (result == NATRuleResult.HANDLED) {
+                    this.logger.trace("NAT Rule #{} {} UNXLATE has handled packet {} received via {}", rule.getPriority(), rule.getTypeString(), packet.getPacketIdentifier().getUuid().toString(), packet.getIngressNetworkInterface().getName());
+                    return PipelineResult.CONTINUE;
+                } else if (result == NATRuleResult.DROP) {
+                    this.logger.info("NAT Rule #{} {} UNXLATE has dropped packet {} received via {}", rule.getPriority(), rule.getTypeString(), packet.getPacketIdentifier().getUuid().toString(), packet.getIngressNetworkInterface().getName());
+                    return PipelineResult.DROP;
+                }
+            }
         }
+        this.logger.trace("No NAT UNXLATE done on packet {}", packet.getPacketIdentifier().getUuid().toString());
         return PipelineResult.CONTINUE;
     }
 }

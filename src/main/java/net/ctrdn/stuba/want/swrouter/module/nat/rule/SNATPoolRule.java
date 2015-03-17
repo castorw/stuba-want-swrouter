@@ -12,7 +12,6 @@ import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.TCPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.core.processing.UDPForIPv4PacketEncapsulation;
 import net.ctrdn.stuba.want.swrouter.exception.NATException;
-import net.ctrdn.stuba.want.swrouter.exception.NATTranslationException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.InterfaceManagerModule;
@@ -37,25 +36,29 @@ public class SNATPoolRule extends DefaultNATRule {
     private final List<NATAddress> usedAddressList = new ArrayList<>();
     private final Map<NATAddress, NetworkInterface> addressInterfaceMap = new HashMap<>();
 
-    public SNATPoolRule(NATModule natModule, int priority, IPv4Prefix insidePrefix, NATPool outsidePool, boolean overloadEnabled) throws NATException, NoSuchModuleException {
+    public SNATPoolRule(NATModule natModule, int priority, IPv4Prefix insidePrefix, NATPool outsidePool, boolean overloadEnabled) throws NATException {
         super(natModule, priority);
         this.insidePrefix = insidePrefix;
         this.outsidePool = outsidePool;
         this.overloadEnabled = overloadEnabled;
-        for (NATAddress na : this.outsidePool.getAddressList()) {
-            NetworkInterface iface = null;
-            for (NetworkInterface ni : this.getNatModule().getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
-                if (ni.getIPv4InterfaceAddress() != null && ni.getIPv4InterfaceAddress().getPrefix().containsAddress(na.getAddress())) {
-                    iface = ni;
-                    break;
+        try {
+            for (NATAddress na : this.outsidePool.getAddressList()) {
+                NetworkInterface iface = null;
+                for (NetworkInterface ni : this.getNatModule().getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
+                    if (ni.getIPv4InterfaceAddress() != null && ni.getIPv4InterfaceAddress().getPrefix().containsAddress(na.getAddress())) {
+                        iface = ni;
+                        break;
+                    }
+                }
+                if (iface == null) {
+                    throw new NATException("Could not find interface for pool address " + na);
+                } else {
+                    this.availableAddressList.add(na);
+                    this.addressInterfaceMap.put(na, iface);
                 }
             }
-            if (iface == null) {
-                throw new NATException("Could not find interface for pool address " + na);
-            } else {
-                this.availableAddressList.add(na);
-                this.addressInterfaceMap.put(na, iface);
-            }
+        } catch (NoSuchModuleException ex) {
+            throw new NATException("Unable to get required module", ex);
         }
     }
 
@@ -133,6 +136,11 @@ public class SNATPoolRule extends DefaultNATRule {
             this.logger.warn("Problem processing NAT XLATE on packet {}", packet.getPacketIdentifier().getUuid().toString(), ex);
             return NATRuleResult.DROP;
         }
+        return NATRuleResult.CONTINUE;
+    }
+
+    @Override
+    public NATRuleResult untranslate(Packet packet) {
         return NATRuleResult.CONTINUE;
     }
 

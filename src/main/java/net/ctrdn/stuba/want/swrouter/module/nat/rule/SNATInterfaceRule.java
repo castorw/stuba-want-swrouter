@@ -73,6 +73,11 @@ public class SNATInterfaceRule extends DefaultNATRule {
         return NATRuleResult.CONTINUE;
     }
 
+    @Override
+    public NATRuleResult untranslate(Packet packet) {
+        return NATRuleResult.CONTINUE;
+    }
+
     public IPv4Prefix getInsidePrefix() {
         return insidePrefix;
     }
