@@ -51,18 +51,18 @@ public class SNATInterfaceRule extends DefaultNATRule {
                 switch (packet.getIPv4Protocol()) {
                     case TCP: {
                         TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
-                        xlation = NATTranslation.newPortTranslation(this.getNatModule(), IPv4Protocol.TCP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
+                        xlation = NATTranslation.newPortTranslation(this, IPv4Protocol.TCP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
                         break;
                     }
                     case UDP: {
                         UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
-                        xlation = NATTranslation.newPortTranslation(this.getNatModule(), IPv4Protocol.UDP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
+                        xlation = NATTranslation.newPortTranslation(this, IPv4Protocol.UDP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
                         break;
                     }
                     case ICMP: {
                         ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
                         if (icmpEncapsulation.isQueryBasedMessage()) {
-                            xlation = NATTranslation.newPortTranslation(this.getNatModule(), IPv4Protocol.ICMP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), icmpEncapsulation.getIdentifier());
+                            xlation = NATTranslation.newPortTranslation(this, IPv4Protocol.ICMP, this.outsideAddress, this.outsideInterface, packet.getSourceIPv4Address(), icmpEncapsulation.getIdentifier());
                         } else {
                             this.logger.info("Cannot perform NAT on non-query ICMP message on packet {}", packet.getPacketIdentifier().getUuid().toString());
                             return NATRuleResult.DROP;

@@ -76,7 +76,7 @@ public class DNATRule extends DefaultNATRule {
         try {
             if (this.outsideAddress.getAddress().equals(packet.getDestinationIPv4Address()) && this.outsideInterface.equals(packet.getIngressNetworkInterface())) {
                 if (this.protocol == null) {
-                    NATTranslation xlation = NATTranslation.newAddressTranslation(this.getNatModule(), this.outsideAddress, this.outsideInterface, this.insideAddress);
+                    NATTranslation xlation = NATTranslation.newAddressTranslation(this, this.outsideAddress, this.outsideInterface, this.insideAddress);
                     for (NetworkInterface ecmpIface : this.ecmpOutsideInterfaceList) {
                         xlation.getEcmpOutsideInterfaceList().add(ecmpIface);
                     }
@@ -110,7 +110,7 @@ public class DNATRule extends DefaultNATRule {
                             }
                         }
                         if (match) {
-                            NATTranslation xlation = NATTranslation.newPortTranslation(this.getNatModule(), this.protocol, this.outsideAddress, this.outsideInterface, this.insideAddress, this.insideProtocolSpecificIdentifier, this.outsideProtocolSpecificIdentifier);
+                            NATTranslation xlation = NATTranslation.newPortTranslation(this, this.protocol, this.outsideAddress, this.outsideInterface, this.insideAddress, this.insideProtocolSpecificIdentifier, this.outsideProtocolSpecificIdentifier);
                             for (NetworkInterface ecmpIface : this.ecmpOutsideInterfaceList) {
                                 xlation.getEcmpOutsideInterfaceList().add(ecmpIface);
                             }

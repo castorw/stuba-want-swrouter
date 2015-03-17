@@ -20,7 +20,7 @@ import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 
 public class NATTranslation {
 
-    private final NATModule natModule;
+    private final NATRule installerRule;
     private final IPv4Protocol protocol;
     private final NetworkInterface outsideInterface;
     private final NATAddress outsideAddress;
@@ -31,15 +31,15 @@ public class NATTranslation {
     private boolean active = true;
     private Date lastActivityDate;
 
-    public final static NATTranslation newAddressTranslation(NATModule natModule, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress) throws NATTranslationException {
+    public final static NATTranslation newAddressTranslation(NATRule installerRule, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress) throws NATTranslationException {
         if (outsideAddress.isConfiguredForPortTranslation()) {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for port translation and cannot be used for NAT");
         }
         outsideAddress.setConfiguredForAddressTranslation(true);
-        return new NATTranslation(natModule, null, outsideAddress, outsideInterface, null, insideAddress, null);
+        return new NATTranslation(installerRule, null, outsideAddress, outsideInterface, null, insideAddress, null);
     }
 
-    public final static NATTranslation newPortTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier, Integer outsideProtocolSpecificIdentifier) throws NATException {
+    public final static NATTranslation newPortTranslation(NATRule installerRule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier, Integer outsideProtocolSpecificIdentifier) throws NATException {
         if (outsideAddress.isConfiguredForAddressTranslation()) {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for address translation and cannot be used for PAT");
         }
@@ -48,15 +48,15 @@ public class NATTranslation {
         if (opsi != null && opsi == -1) {
             opsi = (protocol == IPv4Protocol.TCP) ? outsideAddress.allocateTCPPort() : (protocol == IPv4Protocol.UDP) ? outsideAddress.allocateUDPPort() : (protocol == IPv4Protocol.ICMP) ? outsideAddress.allocateICMPIdentifier() : null;
         }
-        return new NATTranslation(natModule, protocol, outsideAddress, outsideInterface, opsi, insideAddress, insideProtocolSpecificIdentifier);
+        return new NATTranslation(installerRule, protocol, outsideAddress, outsideInterface, opsi, insideAddress, insideProtocolSpecificIdentifier);
     }
 
-    public final static NATTranslation newPortTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier) throws NATException {
-        return NATTranslation.newPortTranslation(natModule, protocol, outsideAddress, outsideInterface, insideAddress, insideProtocolSpecificIdentifier, -1);
+    public final static NATTranslation newPortTranslation(NATRule installerRule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier) throws NATException {
+        return NATTranslation.newPortTranslation(installerRule, protocol, outsideAddress, outsideInterface, insideAddress, insideProtocolSpecificIdentifier, -1);
     }
 
-    private NATTranslation(NATModule natModule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolSpecificIdentifier, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier) throws NATTranslationException {
-        this.natModule = natModule;
+    private NATTranslation(NATRule installerRule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolSpecificIdentifier, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier) throws NATTranslationException {
+        this.installerRule = installerRule;
         this.protocol = protocol;
         this.outsideAddress = outsideAddress;
         this.outsideInterface = outsideInterface;
@@ -254,5 +254,9 @@ public class NATTranslation {
 
     public List<NetworkInterface> getEcmpOutsideInterfaceList() {
         return ecmpOutsideInterfaceList;
+    }
+
+    public NATRule getInstallerRule() {
+        return installerRule;
     }
 }

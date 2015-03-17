@@ -91,18 +91,18 @@ public class SNATPoolRule extends DefaultNATRule {
                     switch (packet.getIPv4Protocol()) {
                         case TCP: {
                             TCPForIPv4PacketEncapsulation tcpEncapsulation = new TCPForIPv4PacketEncapsulation(packet);
-                            xlation = NATTranslation.newPortTranslation(this.getNatModule(), IPv4Protocol.TCP, natAddress, this.addressInterfaceMap.get(natAddress), packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
+                            xlation = NATTranslation.newPortTranslation(this, IPv4Protocol.TCP, natAddress, this.addressInterfaceMap.get(natAddress), packet.getSourceIPv4Address(), tcpEncapsulation.getSourcePort());
                             break;
                         }
                         case UDP: {
                             UDPForIPv4PacketEncapsulation udpEncapsulation = new UDPForIPv4PacketEncapsulation(packet);
-                            xlation = NATTranslation.newPortTranslation(this.getNatModule(), IPv4Protocol.UDP, natAddress, this.addressInterfaceMap.get(natAddress), packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
+                            xlation = NATTranslation.newPortTranslation(this, IPv4Protocol.UDP, natAddress, this.addressInterfaceMap.get(natAddress), packet.getSourceIPv4Address(), udpEncapsulation.getSourcePort());
                             break;
                         }
                         case ICMP: {
                             ICMPForIPv4QueryPacketEncapsulation icmpEncapsulation = new ICMPForIPv4QueryPacketEncapsulation(packet);
                             if (icmpEncapsulation.isQueryBasedMessage()) {
-                                xlation = NATTranslation.newPortTranslation(this.getNatModule(), IPv4Protocol.ICMP, natAddress, this.addressInterfaceMap.get(natAddress), packet.getSourceIPv4Address(), icmpEncapsulation.getIdentifier());
+                                xlation = NATTranslation.newPortTranslation(this, IPv4Protocol.ICMP, natAddress, this.addressInterfaceMap.get(natAddress), packet.getSourceIPv4Address(), icmpEncapsulation.getIdentifier());
                             } else {
                                 this.logger.info("Cannot perform NAT on non-query ICMP message on packet {}", packet.getPacketIdentifier().getUuid().toString());
                                 return NATRuleResult.DROP;
@@ -134,7 +134,7 @@ public class SNATPoolRule extends DefaultNATRule {
                     }
                     this.logger.debug("Created address translation for {} via {} on interface {}", packet.getSourceIPv4Address(), natAddress.getAddress(), packet.getEgressNetworkInterface().getName());
                     this.usedAddressList.add(natAddress);
-                    NATTranslation xlation = NATTranslation.newAddressTranslation(this.getNatModule(), natAddress, packet.getEgressNetworkInterface(), packet.getSourceIPv4Address());
+                    NATTranslation xlation = NATTranslation.newAddressTranslation(this, natAddress, packet.getEgressNetworkInterface(), packet.getSourceIPv4Address());
                     for (NetworkInterface ecmpIface : this.ecmpOutsideInterfaceList) {
                         xlation.getEcmpOutsideInterfaceList().add(ecmpIface);
                     }
