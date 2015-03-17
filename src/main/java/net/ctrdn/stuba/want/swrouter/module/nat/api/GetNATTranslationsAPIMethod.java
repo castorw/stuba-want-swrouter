@@ -1,5 +1,6 @@
 package net.ctrdn.stuba.want.swrouter.module.nat.api;
 
+import java.util.Date;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
@@ -28,6 +29,8 @@ public class GetNATTranslationsAPIMethod extends DefaultAPIMethod {
                 JsonObjectBuilder xlationJob = Json.createObjectBuilder();
                 xlationJob.add("Rule", xlation.toString());
                 xlationJob.add("LastActivityDate", xlation.getLastActivityDate().toString());
+                xlationJob.add("Timeout", xlation.getTimeout());
+                xlationJob.add("TimeRemaining", xlation.getTimeout() - (new Date().getTime() - xlation.getLastActivityDate().getTime()));
                 xlationJob.add("Active", xlation.isActive());
                 xlationsJab.add(xlationJob);
             }

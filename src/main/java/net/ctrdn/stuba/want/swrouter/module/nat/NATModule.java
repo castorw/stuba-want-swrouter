@@ -3,6 +3,7 @@ package net.ctrdn.stuba.want.swrouter.module.nat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javax.json.Json;
@@ -19,6 +20,7 @@ import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import net.ctrdn.stuba.want.swrouter.exception.NATException;
+import net.ctrdn.stuba.want.swrouter.exception.NATTranslationException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.InterfaceManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
@@ -30,6 +32,47 @@ import org.slf4j.LoggerFactory;
 
 public class NATModule extends DefaultRouterModule {
 
+    private class TimeoutWatchdog implements Runnable {
+
+        private Thread thread;
+        private boolean running = true;
+
+        public void start() {
+            this.thread = new Thread(this);
+            this.thread.setName("NATTranslationTimeoutWatchdogThread");
+            this.thread.start();
+        }
+
+        @Override
+        public void run() {
+            try {
+                NATModule.this.logger.debug("NAT Translation timeout watchdog started");
+                while (this.running) {
+                    Date currentDate = new Date();
+                    List<NATTranslation> removeList = new ArrayList<>();
+                    for (NATTranslation xlation : NATModule.this.translationList) {
+                        if (currentDate.getTime() - xlation.getLastActivityDate().getTime() > xlation.getTimeout()) {
+                            removeList.add(xlation);
+                        }
+                    }
+                    for (NATTranslation xlation : removeList) {
+                        try {
+                            xlation.deactivate();
+                            NATModule.this.translationList.remove(xlation);
+                            NATModule.this.logger.debug("NAT Translation {} installed by {} has timed out", xlation, xlation.getInstallerRule());
+                        } catch (NATTranslationException ex) {
+                            NATModule.this.logger.warn("Problem deactivating NAT Translation", ex);
+                        }
+                    }
+                    Thread.sleep(2000);
+                }
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+
+    }
+
     private final Logger logger = LoggerFactory.getLogger(NATModule.class);
     private int addressTranslationTimeout = 300000;
     private int portTranslationTimeout = 300000;
@@ -37,6 +80,7 @@ public class NATModule extends DefaultRouterModule {
     private final List<NATRule> ruleList = Collections.synchronizedList(new ArrayList<NATRule>());
     private final List<NATTranslation> translationList = Collections.synchronizedList(new CopyOnWriteArrayList<NATTranslation>());
     private final List<NATAddress> addressList = new CopyOnWriteArrayList<>();
+    private final TimeoutWatchdog timeoutWatchdog = new TimeoutWatchdog();
 
     public NATModule(RouterController controller) {
         super(controller);
@@ -52,8 +96,9 @@ public class NATModule extends DefaultRouterModule {
             JsonArray rulesArray = moduleConfiguration.getJsonArray("Rules");
 
             if (timerConfigObject != null) {
-                this.addressTranslationTimeout = timerConfigObject.getInt("AddressTranslationTimeout", 300000);
-                this.portTranslationTimeout = timerConfigObject.getInt("PortTranslationTimeout", 300000);
+                this.addressTranslationTimeout = timerConfigObject.getInt("AddressTranslationTimeout", 60000);
+                this.portTranslationTimeout = timerConfigObject.getInt("PortTranslationTimeout", 120000);
+                this.configureTimeouts();
             }
 
             if (addressPoolsArray != null) {
@@ -255,7 +300,7 @@ public class NATModule extends DefaultRouterModule {
 
     @Override
     public void start() {
-
+        this.timeoutWatchdog.start();
     }
 
     @Override
@@ -271,6 +316,10 @@ public class NATModule extends DefaultRouterModule {
     @Override
     public int getLoadPriority() {
         return 1536;
+    }
+
+    private void configureTimeouts() {
+        NATTranslation.setGlobalTimeouts(this.getPortTranslationTimeout(), this.getAddressTranslationTimeout());
     }
 
     public int getAddressTranslationTimeout() {

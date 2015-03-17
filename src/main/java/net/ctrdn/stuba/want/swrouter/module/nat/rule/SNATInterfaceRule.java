@@ -125,4 +125,8 @@ public class SNATInterfaceRule extends DefaultNATRule {
     public List<NetworkInterface> getEcmpOutsideInterfaceList() {
         return ecmpOutsideInterfaceList;
     }
+
+    @Override
+    public void onTranslationDeactivated(NATTranslation translation) {
+    }
 }

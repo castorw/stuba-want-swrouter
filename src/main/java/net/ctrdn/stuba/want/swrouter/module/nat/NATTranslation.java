@@ -19,7 +19,10 @@ import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
 
 public class NATTranslation {
-
+    
+    private static int globalPortTranslationTimeout = 120000;
+    private static int globalAddressTranslationTimeout = 60000;
+    
     private final NATRule installerRule;
     private final IPv4Protocol protocol;
     private final NetworkInterface outsideInterface;
@@ -30,15 +33,23 @@ public class NATTranslation {
     private final List<NetworkInterface> ecmpOutsideInterfaceList = new ArrayList<>();
     private boolean active = true;
     private Date lastActivityDate;
-
+    private int timeout;
+    
+    public final static void setGlobalTimeouts(int portTranslationTimeout, int addressTranslationTimeout) {
+        NATTranslation.globalPortTranslationTimeout = portTranslationTimeout;
+        NATTranslation.globalAddressTranslationTimeout = addressTranslationTimeout;
+    }
+    
     public final static NATTranslation newAddressTranslation(NATRule installerRule, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress) throws NATTranslationException {
         if (outsideAddress.isConfiguredForPortTranslation()) {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for port translation and cannot be used for NAT");
         }
         outsideAddress.setConfiguredForAddressTranslation(true);
-        return new NATTranslation(installerRule, null, outsideAddress, outsideInterface, null, insideAddress, null);
+        NATTranslation xlation = new NATTranslation(installerRule, null, outsideAddress, outsideInterface, null, insideAddress, null);
+        xlation.setTimeout(NATTranslation.globalAddressTranslationTimeout);
+        return xlation;
     }
-
+    
     public final static NATTranslation newPortTranslation(NATRule installerRule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier, Integer outsideProtocolSpecificIdentifier) throws NATException {
         if (outsideAddress.isConfiguredForAddressTranslation()) {
             throw new NATTranslationException("NAT address " + outsideAddress.getAddress() + " is already configured for address translation and cannot be used for PAT");
@@ -48,13 +59,15 @@ public class NATTranslation {
         if (opsi != null && opsi == -1) {
             opsi = (protocol == IPv4Protocol.TCP) ? outsideAddress.allocateTCPPort() : (protocol == IPv4Protocol.UDP) ? outsideAddress.allocateUDPPort() : (protocol == IPv4Protocol.ICMP) ? outsideAddress.allocateICMPIdentifier() : null;
         }
-        return new NATTranslation(installerRule, protocol, outsideAddress, outsideInterface, opsi, insideAddress, insideProtocolSpecificIdentifier);
+        NATTranslation xlation = new NATTranslation(installerRule, protocol, outsideAddress, outsideInterface, opsi, insideAddress, insideProtocolSpecificIdentifier);
+        xlation.setTimeout(NATTranslation.globalPortTranslationTimeout);
+        return xlation;
     }
-
+    
     public final static NATTranslation newPortTranslation(NATRule installerRule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier) throws NATException {
         return NATTranslation.newPortTranslation(installerRule, protocol, outsideAddress, outsideInterface, insideAddress, insideProtocolSpecificIdentifier, -1);
     }
-
+    
     private NATTranslation(NATRule installerRule, IPv4Protocol protocol, NATAddress outsideAddress, NetworkInterface outsideInterface, Integer outsideProtocolSpecificIdentifier, IPv4Address insideAddress, Integer insideProtocolSpecificIdentifier) throws NATTranslationException {
         this.installerRule = installerRule;
         this.protocol = protocol;
@@ -65,43 +78,53 @@ public class NATTranslation {
         this.outsideProtocolSpecificIdentifier = outsideProtocolSpecificIdentifier;
         this.lastActivityDate = new Date();
     }
-
+    
     public IPv4Protocol getProtocol() {
         return protocol;
     }
-
+    
     public NetworkInterface getOutsideInterface() {
         return outsideInterface;
     }
-
+    
     public NATAddress getOutsideAddress() {
         return outsideAddress;
     }
-
+    
     public Integer getOutsideProtocolSpecificIdentifier() {
         return outsideProtocolSpecificIdentifier;
     }
-
+    
     public IPv4Address getInsideAddress() {
         return insideAddress;
     }
-
+    
     public Integer getInsideProtocolSpecificIdentifier() {
         return insideProtocolSpecificIdentifier;
     }
-
+    
     public boolean isActive() {
         return active;
     }
-
+    
     public void deactivate() throws NATTranslationException {
         this.active = false;
+        if (this.protocol != null && this.outsideProtocolSpecificIdentifier != null) {
+            if (this.protocol == IPv4Protocol.ICMP) {
+                this.outsideAddress.releaseICMPIdentifier(this.outsideProtocolSpecificIdentifier);
+            } else if (this.protocol == IPv4Protocol.TCP) {
+                this.outsideAddress.releaseTCPPort(this.outsideProtocolSpecificIdentifier);
+            } else if (this.protocol == IPv4Protocol.UDP) {
+                this.outsideAddress.releaseUDPPort(this.outsideProtocolSpecificIdentifier);
+            }
+        }
+        this.installerRule.onTranslationDeactivated(this);
     }
-
+    
     public Date getLastActivityDate() {
         return lastActivityDate;
     }
-
+    
     @Override
     public String toString() {
         if (this.protocol == null) {
@@ -110,7 +133,7 @@ public class NATTranslation {
             return "PAT inside " + this.getInsideAddress() + " " + this.getProtocol().name() + ((this.getInsideProtocolSpecificIdentifier() != null) ? "/" + this.getInsideProtocolSpecificIdentifier() : "") + " <---> outside " + this.getOutsideAddress().getAddress() + " " + this.getProtocol().name() + ((this.getOutsideProtocolSpecificIdentifier() != null) ? "/" + this.getOutsideProtocolSpecificIdentifier() : "") + " on " + this.getOutsideInterface().getName();
         }
     }
-
+    
     public boolean apply(Packet packet) throws NATTranslationException {
         if (this.isActive()) {
             if ((packet.getProcessingChain() == ProcessingChain.INPUT || packet.getProcessingChain() == ProcessingChain.FORWARD) && packet.getEthernetType() == EthernetType.IPV4) {
@@ -235,7 +258,7 @@ public class NATTranslation {
         }
         return false;
     }
-
+    
     private void calculateProtocolChecksumIfNeeded(Packet packet) throws PacketException, IOException {
         if (packet.getEthernetType() == EthernetType.IPV4) {
             if (packet.getIPv4Protocol() == IPv4Protocol.TCP) {
@@ -247,16 +270,24 @@ public class NATTranslation {
             }
         }
     }
-
+    
     private void updateLastActivity() {
         this.lastActivityDate = new Date();
     }
-
+    
     public List<NetworkInterface> getEcmpOutsideInterfaceList() {
         return ecmpOutsideInterfaceList;
     }
-
+    
     public NATRule getInstallerRule() {
         return installerRule;
+    }
+    
+    public int getTimeout() {
+        return timeout;
+    }
+    
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
     }
 }

@@ -178,4 +178,8 @@ public class DNATRule extends DefaultNATRule {
         return ecmpOutsideInterfaceList;
     }
 
+    @Override
+    public void onTranslationDeactivated(NATTranslation translation) {
+    }
+
 }

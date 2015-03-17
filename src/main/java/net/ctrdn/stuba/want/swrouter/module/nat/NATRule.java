@@ -14,4 +14,6 @@ public interface NATRule {
     public NATRuleResult untranslate(Packet packet);
 
     public void clear() throws NATException;
+
+    public void onTranslationDeactivated(NATTranslation translation);
 }

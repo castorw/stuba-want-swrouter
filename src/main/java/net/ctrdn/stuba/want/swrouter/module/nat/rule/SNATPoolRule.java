@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.processing.ICMPForIPv4QueryPacketEncapsulation;
@@ -35,7 +36,7 @@ public class SNATPoolRule extends DefaultNATRule {
     private final List<NetworkInterface> ecmpOutsideInterfaceList = new ArrayList<>();
 
     private final List<NATAddress> availableAddressList = new ArrayList<>();
-    private final List<NATAddress> usedAddressList = new ArrayList<>();
+    private final List<NATAddress> usedAddressList = new CopyOnWriteArrayList<>();
     private final Map<NATAddress, NetworkInterface> addressInterfaceMap = new HashMap<>();
 
     public SNATPoolRule(NATModule natModule, int priority, IPv4Prefix insidePrefix, NATPool outsidePool, boolean overloadEnabled) throws NATException {
@@ -192,5 +193,15 @@ public class SNATPoolRule extends DefaultNATRule {
 
     public List<NetworkInterface> getEcmpOutsideInterfaceList() {
         return ecmpOutsideInterfaceList;
+    }
+
+    @Override
+    public void onTranslationDeactivated(NATTranslation translation) {
+        for (NATAddress na : this.usedAddressList) {
+            if (translation.getOutsideAddress().equals(na)) {
+                this.usedAddressList.remove(na);
+                this.logger.debug("NAT address {} in {} has been freed", na.getAddress(), this);
+            }
+        }
     }
 }
