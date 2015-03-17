@@ -31,6 +31,8 @@ public class GetNATTranslationsAPIMethod extends DefaultAPIMethod {
                 xlationJob.add("LastActivityDate", xlation.getLastActivityDate().toString());
                 xlationJob.add("Timeout", xlation.getTimeout());
                 xlationJob.add("TimeRemaining", xlation.getTimeout() - (new Date().getTime() - xlation.getLastActivityDate().getTime()));
+                xlationJob.add("TranslateHitCount", xlation.getTranslateHitCount());
+                xlationJob.add("UntranslateHitCount", xlation.getUntranslateHitCount());
                 xlationJob.add("Active", xlation.isActive());
                 xlationsJab.add(xlationJob);
             }

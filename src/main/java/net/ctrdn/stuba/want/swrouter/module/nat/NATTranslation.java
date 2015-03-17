@@ -34,6 +34,8 @@ public class NATTranslation {
     private boolean active = true;
     private Date lastActivityDate;
     private int timeout;
+    private long translateHitCount = 0;
+    private long untranslateHitCount = 0;
 
     public final static void setGlobalTimeouts(int portTranslationTimeout, int addressTranslationTimeout) {
         NATTranslation.globalPortTranslationTimeout = portTranslationTimeout;
@@ -143,7 +145,7 @@ public class NATTranslation {
                         packet.setSourceIPv4Address(this.getOutsideAddress().getAddress());
                         this.calculateProtocolChecksumIfNeeded(packet);
                         packet.calculateIPv4Checksum();
-                        this.updateLastActivity();
+                        this.updateLastActivity(true);
                         return true;
                     } else if (this.getProtocol() == null && (this.getOutsideInterface().equals(packet.getIngressNetworkInterface()) || this.ecmpOutsideInterfaceList.contains(packet.getIngressNetworkInterface())) && this.getOutsideAddress().getAddress().equals(packet.getDestinationIPv4Address())) {
                         // NAT UNXLATE
@@ -152,7 +154,7 @@ public class NATTranslation {
                         this.calculateProtocolChecksumIfNeeded(packet);
                         packet.calculateIPv4Checksum();
                         packet.setProcessingChain(ProcessingChain.FORWARD);
-                        this.updateLastActivity();
+                        this.updateLastActivity(false);
                         return true;
                     } else if (packet.getProcessingChain() == ProcessingChain.FORWARD && this.getProtocol() == packet.getIPv4Protocol() && (this.getOutsideInterface().equals(packet.getEgressNetworkInterface()) || this.ecmpOutsideInterfaceList.contains(packet.getEgressNetworkInterface())) && this.getInsideAddress().equals(packet.getSourceIPv4Address())) {
                         // Possible PAT XLATE
@@ -165,7 +167,7 @@ public class NATTranslation {
                                     tcpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     tcpEncapsulation.calculateTCPChecksum();
                                     tcpEncapsulation.getPacket().calculateIPv4Checksum();
-                                    this.updateLastActivity();
+                                    this.updateLastActivity(true);
                                     return true;
                                 }
                                 break;
@@ -178,7 +180,7 @@ public class NATTranslation {
                                     udpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     udpEncapsulation.calculateUDPChecksum();
                                     udpEncapsulation.getPacket().calculateIPv4Checksum();
-                                    this.updateLastActivity();
+                                    this.updateLastActivity(true);
                                     return true;
                                 }
                                 break;
@@ -193,7 +195,7 @@ public class NATTranslation {
                                     }
                                     icmpEncapsulation.getPacket().setSourceIPv4Address(this.outsideAddress.getAddress());
                                     icmpEncapsulation.getPacket().calculateIPv4Checksum();
-                                    this.updateLastActivity();
+                                    this.updateLastActivity(true);
                                     return true;
                                 }
                             }
@@ -211,7 +213,7 @@ public class NATTranslation {
                                     tcpEncapsulation.calculateTCPChecksum();
                                     tcpEncapsulation.getPacket().calculateIPv4Checksum();
                                     packet.setProcessingChain(ProcessingChain.FORWARD);
-                                    this.updateLastActivity();
+                                    this.updateLastActivity(false);
                                     return true;
                                 }
                                 break;
@@ -226,7 +228,7 @@ public class NATTranslation {
                                     udpEncapsulation.calculateUDPChecksum();
                                     udpEncapsulation.getPacket().calculateIPv4Checksum();
                                     packet.setProcessingChain(ProcessingChain.FORWARD);
-                                    this.updateLastActivity();
+                                    this.updateLastActivity(false);
                                     return true;
                                 }
                                 break;
@@ -243,7 +245,7 @@ public class NATTranslation {
                                     icmpEncapsulation.getPacket().setDestinationHardwareAddress(MACAddress.ZERO);
                                     icmpEncapsulation.getPacket().calculateIPv4Checksum();
                                     packet.setProcessingChain(ProcessingChain.FORWARD);
-                                    this.updateLastActivity();
+                                    this.updateLastActivity(false);
                                     return true;
                                 }
                             }
@@ -271,8 +273,13 @@ public class NATTranslation {
         }
     }
 
-    private void updateLastActivity() {
+    private void updateLastActivity(boolean isTranslation) {
         this.lastActivityDate = new Date();
+        if (isTranslation) {
+            this.translateHitCount++;
+        } else {
+            this.untranslateHitCount++;
+        }
     }
 
     public List<NetworkInterface> getEcmpOutsideInterfaceList() {
@@ -289,5 +296,13 @@ public class NATTranslation {
 
     public void setTimeout(int timeout) {
         this.timeout = timeout;
+    }
+
+    public long getTranslateHitCount() {
+        return translateHitCount;
+    }
+
+    public long getUntranslateHitCount() {
+        return untranslateHitCount;
     }
 }
