@@ -21,6 +21,7 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonGenerator;
+import net.ctrdn.stuba.want.swrouter.adminportal.PortalResourceServlet;
 import net.ctrdn.stuba.want.swrouter.api.APIMethodRegistry;
 import net.ctrdn.stuba.want.swrouter.api.APIServlet;
 import net.ctrdn.stuba.want.swrouter.core.processing.PacketProcessor;
@@ -56,7 +57,7 @@ public class RouterController {
             this.startPacketProcessor();
             this.loadModules();
             this.startModules();
-            this.startAPIServer();
+            this.startWebserver();
             this.bootFinishDate = new Date();
         } catch (ModuleInitializationException ex) {
             throw new RuntimeException(ex);
@@ -118,16 +119,17 @@ public class RouterController {
         }
     }
 
-    private void startAPIServer() throws ModuleInitializationException {
+    private void startWebserver() throws ModuleInitializationException {
         try {
             APIMethodRegistry.initalize(this);
             ServletContextHandler sch = new ServletContextHandler(ServletContextHandler.SESSIONS);
             sch.setContextPath("/");
             sch.addServlet(new ServletHolder(new APIServlet(this)), "/api/*");
+            sch.addServlet(new ServletHolder(new PortalResourceServlet()), "/*");
             Server server = new Server(8844);
             server.setHandler(sch);
             server.start();
-            this.logger.info("Started API server on port {}", 8844);
+            this.logger.info("Started  webserver on port {}", 8844);
         } catch (Exception ex) {
             ModuleInitializationException finalEx = new ModuleInitializationException("Failed to start API server");
             finalEx.addSuppressed(ex);
