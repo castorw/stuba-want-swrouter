@@ -83,3 +83,10 @@ body {
     border:1px solid #94a0b4;
     color:#000
 }
+
+.json-syntax-highlight pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+.json-syntax-highlight .string { color: green; }
+.json-syntax-highlight .number { color: darkorange; }
+.json-syntax-highlight .boolean { color: blue; }
+.json-syntax-highlight .null { color: magenta; }
+.json-syntax-highlight .key { color: red; }

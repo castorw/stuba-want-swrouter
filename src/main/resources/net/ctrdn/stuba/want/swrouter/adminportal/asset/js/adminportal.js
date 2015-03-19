@@ -42,6 +42,9 @@ function tree_reload() {
     tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"routing-ripv2\"><span><i class=\"glyphicon glyphicon-road\"></i> RIPv2 Routing</span></a></li>";
     tmhtml += "</ul></li>";
 
+    // Configuration Management
+    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"configuration-management\"><span><i class=\"glyphicon glyphicon-wrench\"></i> Configuration Management</span></a></li>";
+
     tmhtml += "</ul>";
     tmhtml += "</li>";
     tmhtml += "</ut>";
@@ -92,6 +95,11 @@ function load_view(view_name) {
         case "network-interfaces":
             {
                 data = get_view_network_interfaces();
+                break;
+            }
+        case "configuration-management":
+            {
+                data = get_view_configuration_management();
                 break;
             }
     }
@@ -305,6 +313,30 @@ function get_view_routing_table() {
 
 
 
+function get_view_configuration_management() {
+    var view_html = "<placeholder identifier=\"configuration_management\" />";
+
+    call_swrouter_api("get-running-configuration", function(data) {
+        var html = "<h3><i class=\"glyphicon glyphicon-wrench\"></i> Configuration Management</h3>";
+        html += "<div style=\"width:100%; padding-bottom: 10px;\">";
+        html += "<a class=\"btn btn-primary btn-sm\" href=\"#\" role=\"button\" id=\"download-config-button\"><i class=\"glyphicon glyphicon-download-alt\"></i> Download Running Configuration</a>";
+        html += "</div>";
+        html += "<div class=\"well\"><pre class=\"json-syntax-highlight\">";
+        html += json_syntax_highlight(JSON.stringify(data["Response"]["RunningConfiguration"], undefined, 4));
+        html += "</pre></div>";
+
+        $("#content placeholder[identifier='configuration_management']").html(html);
+
+        $("#download-config-button").click(function() {
+            location.href = "/api/get-running-configuration?download=1";
+        });
+    });
+
+    return view_html;
+}
+
+
+
 
 
 
@@ -390,5 +422,32 @@ function format_date(timestamp, fmt) {
             default:
                 throw new Error('Unsupported format code: ' + fmtCode);
         }
+    });
+}
+
+
+
+
+
+
+
+
+
+function json_syntax_highlight(json) {
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+        var cls = 'number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'key';
+            } else {
+                cls = 'string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'boolean';
+        } else if (/null/.test(match)) {
+            cls = 'null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
     });
 }
