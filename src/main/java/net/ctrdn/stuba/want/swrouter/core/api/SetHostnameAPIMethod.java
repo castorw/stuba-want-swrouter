@@ -15,7 +15,7 @@ public class SetHostnameAPIMethod extends DefaultAPIMethod {
     }
 
     @Override
-    public JsonObjectBuilder execute(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
+    public JsonObjectBuilder executePost(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
         String newHostname = request.getParameter("hostname");
         this.getRouterController().setHostname(newHostname);
         JsonObjectBuilder responseJob = Json.createObjectBuilder();

@@ -17,7 +17,7 @@ public class InternalGetMethodsAPIMethod extends DefaultAPIMethod {
     }
 
     @Override
-    public JsonObjectBuilder execute(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
+    public JsonObjectBuilder executePost(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
         JsonObjectBuilder responseJob = Json.createObjectBuilder();
         JsonArrayBuilder listJab = Json.createArrayBuilder();
         for (String methodName : APIMethodRegistry.getInstance().getMethodNames()) {

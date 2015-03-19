@@ -18,7 +18,7 @@ public class GetSystemInformationAPIMethod extends DefaultAPIMethod {
     }
 
     @Override
-    public JsonObjectBuilder execute(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
+    public JsonObjectBuilder executePost(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
         try {
             JsonObjectBuilder responseJob = Json.createObjectBuilder();
             responseJob.add("Hostname", this.getRouterController().getHostname());

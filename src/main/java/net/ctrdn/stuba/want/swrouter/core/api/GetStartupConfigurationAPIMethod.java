@@ -15,7 +15,7 @@ public class GetStartupConfigurationAPIMethod extends DefaultAPIMethod {
     }
 
     @Override
-    public JsonObjectBuilder execute(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
+    public JsonObjectBuilder executePost(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
         JsonObjectBuilder responseJob = Json.createObjectBuilder();
         responseJob.add("StartupConfiguration", this.getRouterController().getStartupConfiguration());
         return responseJob;

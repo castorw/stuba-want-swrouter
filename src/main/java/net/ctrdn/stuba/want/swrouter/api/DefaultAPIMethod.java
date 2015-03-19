@@ -1,8 +1,12 @@
 package net.ctrdn.stuba.want.swrouter.api;
 
 import java.util.Date;
+import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
+import net.ctrdn.stuba.want.swrouter.exception.APIMethodException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,5 +53,10 @@ abstract public class DefaultAPIMethod implements APIMethod {
 
     protected RouterController getRouterController() {
         return this.routerController;
+    }
+
+    @Override
+    public JsonObject executeGet(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
+        return null;
     }
 }

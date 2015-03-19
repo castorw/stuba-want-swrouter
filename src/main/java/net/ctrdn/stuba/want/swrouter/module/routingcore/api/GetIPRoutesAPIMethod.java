@@ -21,7 +21,7 @@ public class GetIPRoutesAPIMethod extends DefaultAPIMethod {
     }
 
     @Override
-    public JsonObjectBuilder execute(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
+    public JsonObjectBuilder executePost(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
         try {
             JsonObjectBuilder responseJob = Json.createObjectBuilder();
             JsonArrayBuilder routesJab = Json.createArrayBuilder();

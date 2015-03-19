@@ -20,7 +20,7 @@ public class GetNATTranslationsAPIMethod extends DefaultAPIMethod {
     }
 
     @Override
-    public JsonObjectBuilder execute(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
+    public JsonObjectBuilder executePost(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
         try {
             NATModule natModule = this.getRouterController().getModule(NATModule.class);
             JsonObjectBuilder responseJob = Json.createObjectBuilder();

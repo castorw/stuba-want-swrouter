@@ -11,7 +11,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.APIMethodException;
 import net.ctrdn.stuba.want.swrouter.exception.APIMethodUserException;
@@ -30,7 +29,6 @@ public class APIServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        HttpSession session = request.getSession();
         int outputStatus = HttpServletResponse.SC_OK;
 
         response.setContentType("text/json");
@@ -40,9 +38,54 @@ public class APIServlet extends HttpServlet {
             APIMethod method = APIMethodRegistry.getInstance().getMethod(apiCallName);
             if (method != null) {
                 try {
-                    JsonObjectBuilder methodJob = method.execute(this.routerController, request, response);
+                    JsonObjectBuilder methodJob = method.executePost(this.routerController, request, response);
                     responseJob.add("Response", methodJob);
                     responseJob.add("Status", true);
+                } catch (APIMethodUserException ex) {
+                    responseJob.add("Status", true);
+                    responseJob.add("UserError", ex.getMessage());
+                    this.logger.trace("[" + request.getRemoteAddr() + "] API method produced user error: " + ex.getMessage());
+                } catch (APIMethodException ex) {
+                    responseJob.add("Status", false);
+                    responseJob.add("Error", "ApiMethodException: " + ex.getMessage());
+                    this.logger.info("[" + request.getRemoteAddr() + "] API method invocation failed", ex);
+                }
+            } else {
+                responseJob.add("Status", false);
+                responseJob.add("Error", "Unknown method " + apiCallName);
+                this.logger.info("[" + request.getRemoteAddr() + "] Unknown API method requested " + apiCallName);
+            }
+        } catch (APIRegistryException ex) {
+            responseJob.add("Status", false);
+            responseJob.add("Error", "Internal error while processing request");
+            outputStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+            this.logger.warn("Failed to resolve API method", ex);
+        }
+
+        response.setStatus(outputStatus);
+        Map<String, Object> jwConfig = new HashMap<>();
+        jwConfig.put(JsonGenerator.PRETTY_PRINTING, true);
+        JsonWriter jw = Json.createWriterFactory(jwConfig).createWriter(response.getOutputStream());
+        jw.writeObject(responseJob.build());
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        int outputStatus = HttpServletResponse.SC_OK;
+
+        response.setContentType("text/json");
+        String apiCallName = request.getRequestURI().replace(request.getServletPath() + "/", "");
+        JsonObjectBuilder responseJob = Json.createObjectBuilder();
+        try {
+            APIMethod method = APIMethodRegistry.getInstance().getMethod(apiCallName);
+            if (method != null) {
+                try {
+                    response.setStatus(outputStatus);
+                    Map<String, Object> jwConfig = new HashMap<>();
+                    jwConfig.put(JsonGenerator.PRETTY_PRINTING, true);
+                    JsonWriter jw = Json.createWriterFactory(jwConfig).createWriter(response.getOutputStream());
+                    jw.writeObject(method.executeGet(this.routerController, request, response));
+                    return;
                 } catch (APIMethodUserException ex) {
                     responseJob.add("Status", true);
                     responseJob.add("UserError", ex.getMessage());
