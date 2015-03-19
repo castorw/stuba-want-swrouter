@@ -20,6 +20,10 @@ public class IPv4Address {
         }
         byte[] bytes = new byte[4];
         for (int i = 0; i < 4; i++) {
+            int intcheck = Integer.parseInt(split[i]);
+            if (intcheck < 0 || intcheck > 255) {
+                throw new IPv4MathException(stringRepresentedAddress + " is not a valid IPv4 address");
+            }
             bytes[i] = (byte) (Short.parseShort(split[i]) & 0xff);
         }
         return new IPv4Address(bytes);
