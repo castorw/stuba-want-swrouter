@@ -35,6 +35,8 @@ function tree_reload() {
     // Network Interfaces Submenu
     tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"network-interfaces\"><span><i class=\"glyphicon glyphicon-resize-horizontal\"></i> Network Interfaces</span></a></li>";
 
+    // Address Resolution Protocol
+    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"arp\"><span><i class=\" glyphicon glyphicon-screenshot\"></i> Address Resolution Protocol</span></a></li>";
     // Routing Submenu
     tmhtml += "<li><span><i class=\"glyphicon glyphicon-random\"></i> IP Routing</span> <ul>";
     tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-table\"><span><i class=\"glyphicon glyphicon-list\"></i> Routing Table</span></a></li>";
@@ -100,6 +102,11 @@ function load_view(view_name) {
         case "configuration-management":
             {
                 data = get_view_configuration_management();
+                break;
+            }
+        case "arp":
+            {
+                data = get_view_arp();
                 break;
             }
     }
@@ -271,7 +278,66 @@ function get_view_network_interfaces() {
     return view_html;
 }
 
+function get_view_arp() {
+    var view_html = "<h3><i class=\"glyphicon glyphicon-screenshot\"></i> Address Resolution Protocol</h3> <placeholder identifier=\"arp_config\" /> <placeholder identifier=\"arp_table\" /> <placeholder identifier=\"arp_va\" />";
 
+    call_swrouter_api("get-arp-configuration", function(data) {
+        var html = "<div class=\"panel panel-default\">"
+                + "<div class=\"panel-heading\">"
+                + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-wrench\"></i> Configuration</h3>"
+                + "</div>"
+                + "<div class=\"panel-body\"><table class=\"table table-striped\">";
+        html += "<tr><td width=\"30%\"><strong>Entry Timeout</strong></td><td><a href=\"#\" id=\"arp-entry-timeout\">" + data["Response"]["ARPConfiguration"]["EntryTimeout"] + "ms</a></td></tr>";
+        html += "<tr><td><strong>Pipeline Resolution Timeout</strong></td><td><a href=\"#\" id=\"arp-pipeline-resolution-timeout\">" + data["Response"]["ARPConfiguration"]["PipelineResolutionTimeout"] + "ms</a></td></tr>";
+        html += "</table></div>";
+
+        $("#content placeholder[identifier='arp_config']").html(html);
+
+        $("#arp-entry-timeout").editable({
+            type: "text",
+            title: 'Enter ARP entry timeout',
+            placement: "right",
+            url: function(params) {
+                var d = new $.Deferred;
+                call_swrouter_api_params("configure-arp", "EntryTimeout=" + params.value, function(data) {
+                    d.resolve(data);
+                });
+                return d.promise();
+            },
+            success: function(response, newValue) {
+                if (response["UserError"] !== undefined) {
+                    return response["UserError"];
+                } else {
+                    tree_reload();
+                    reload_view();
+                }
+            }
+        });
+
+        $("#arp-pipeline-resolution-timeout").editable({
+            type: "text",
+            title: 'Enter ARP pipeline resolution timeout"',
+            placement: "right",
+            url: function(params) {
+                var d = new $.Deferred;
+                call_swrouter_api_params("configure-arp", "PipelineResolutionTimeout=" + params.value, function(data) {
+                    d.resolve(data);
+                });
+                return d.promise();
+            },
+            success: function(response, newValue) {
+                if (response["UserError"] !== undefined) {
+                    return response["UserError"];
+                } else {
+                    tree_reload();
+                    reload_view();
+                }
+            }
+        });
+    });
+
+    return view_html;
+}
 
 
 function get_view_routing_table() {

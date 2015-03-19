@@ -65,7 +65,7 @@ public class ARPManagerModule extends DefaultRouterModule {
     public void reloadConfiguration(JsonObject moduleConfiguration) {
         if (moduleConfiguration != null) {
             this.arpTableWatchdog.entryTimeout = moduleConfiguration.getInt("TableEntryTimeout", 60000);
-            this.pipelineResolutionTimeout = moduleConfiguration.getInt("PipelineResolutionTimeout", 5000);
+            this.setPipelineResolutionTimeout(moduleConfiguration.getInt("PipelineResolutionTimeout", 5000));
         }
     }
 
@@ -73,7 +73,7 @@ public class ARPManagerModule extends DefaultRouterModule {
     public JsonObjectBuilder dumpConfiguration() {
         JsonObjectBuilder configJob = Json.createObjectBuilder();
         configJob.add("TableEntryTimeout", this.arpTableWatchdog.entryTimeout);
-        configJob.add("PipelineResolutionTimeout", this.pipelineResolutionTimeout);
+        configJob.add("PipelineResolutionTimeout", this.getPipelineResolutionTimeout());
         return configJob;
     }
 
@@ -110,10 +110,6 @@ public class ARPManagerModule extends DefaultRouterModule {
         return this.routerController;
     }
 
-    protected int getPipelineResolutionTimeout() {
-        return pipelineResolutionTimeout;
-    }
-
     protected synchronized ARPTableEntry getARPTableEntry(IPv4Address protocolAddress, NetworkInterface networkInterface) {
         for (ARPTableEntry entry : this.arpTable) {
             if (entry.getProtocolAddress().equals(protocolAddress) && networkInterface == entry.getNetworkInterface()) {
@@ -148,4 +144,21 @@ public class ARPManagerModule extends DefaultRouterModule {
     public synchronized void removeVirtualAddress(IPv4Address address, NetworkInterface iface) {
         this.virtualAddressMap.remove(address, iface);
     }
+
+    public void setPipelineResolutionTimeout(int pipelineResolutionTimeout) {
+        this.pipelineResolutionTimeout = pipelineResolutionTimeout;
+    }
+
+    public int getPipelineResolutionTimeout() {
+        return pipelineResolutionTimeout;
+    }
+
+    public int getEntryTimeout() {
+        return this.arpTableWatchdog.entryTimeout;
+    }
+
+    public void setEntryTimeout(int timeout) {
+        this.arpTableWatchdog.entryTimeout = timeout;
+    }
+
 }
