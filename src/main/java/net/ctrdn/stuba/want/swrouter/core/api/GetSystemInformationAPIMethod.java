@@ -29,6 +29,7 @@ public class GetSystemInformationAPIMethod extends DefaultAPIMethod {
             responseJob.add("ModuleCount", this.getRouterController().getModuleClasses().length);
             responseJob.add("PipelineBranchCount", this.getRouterController().getPacketProcessor().getPipelineBranches().length);
             responseJob.add("InterfaceCount", this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces().length);
+            responseJob.add("ConfigurationChanged", this.getRouterController().isConfigurationChanged());
             return responseJob;
         } catch (NoSuchModuleException ex) {
             throw new APIMethodException("Internal error - " + ex.getMessage());

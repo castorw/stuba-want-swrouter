@@ -117,7 +117,13 @@ public class NetworkInterfaceImpl implements NetworkInterface {
 
     @Override
     public void setEnabled(boolean enabled) {
+        boolean prev = this.enabled;
         this.enabled = enabled;
+        if (prev && !this.enabled) {
+            this.stop();
+        } else if (!prev && this.enabled) {
+            this.start();
+        }
     }
 
     protected void start() {

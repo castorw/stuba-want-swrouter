@@ -37,11 +37,13 @@ import org.slf4j.LoggerFactory;
 public class RouterController {
 
     private final Logger logger = LoggerFactory.getLogger(RouterController.class);
+    private final List<Class<? extends RouterModule>> moduleClassList = new ArrayList<>();
     private final Map<Class<? extends RouterModule>, RouterModule> moduleMap = new HashMap<>();
     private final File configurationFile = new File("stuba-want-swrouter.conf.json");
     private Date bootDate;
     private Date bootFinishDate;
     private JsonObject configurationObject;
+    private boolean configurationChanged = false;
 
     private String hostname = "SoftwareRouter";
     private PacketProcessor packetProcessor;
@@ -93,6 +95,7 @@ public class RouterController {
 
         for (RouterModule module : foundModuleList) {
             try {
+                this.moduleClassList.add(module.getClass());
                 this.moduleMap.put(module.getClass(), module);
                 module.initialize();
                 module.reloadConfiguration(this.getModuleConfiguration(module.getClass()));
@@ -218,11 +221,15 @@ public class RouterController {
     }
 
     public Class<? extends RouterModule>[] getModuleClasses() {
-        return this.moduleMap.keySet().toArray(new Class[this.moduleMap.keySet().size()]);
+        return this.moduleClassList.toArray(new Class[this.moduleClassList.size()]);
     }
 
     public PacketProcessor getPacketProcessor() {
         return packetProcessor;
+    }
+
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
     }
 
     public String getHostname() {
@@ -235,5 +242,17 @@ public class RouterController {
 
     public Date getBootFinishDate() {
         return bootFinishDate;
+    }
+
+    public boolean isConfigurationChanged() {
+        return configurationChanged;
+    }
+
+    public void onConfigurationChanged() {
+        this.configurationChanged = true;
+    }
+
+    public void onConfigurationSaved() {
+        this.configurationChanged = false;
     }
 }

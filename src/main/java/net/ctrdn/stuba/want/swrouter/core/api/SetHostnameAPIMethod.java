@@ -1,6 +1,5 @@
 package net.ctrdn.stuba.want.swrouter.core.api;
 
-import java.util.Date;
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;
 import javax.servlet.http.HttpServletRequest;
@@ -9,20 +8,19 @@ import net.ctrdn.stuba.want.swrouter.api.DefaultAPIMethod;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.APIMethodException;
 
-public class WriteStartupConfigurationAPIMethod extends DefaultAPIMethod {
+public class SetHostnameAPIMethod extends DefaultAPIMethod {
 
-    public WriteStartupConfigurationAPIMethod(RouterController routerController) {
-        super(routerController, "write-startup-configuration");
+    public SetHostnameAPIMethod(RouterController routerController) {
+        super(routerController, "set-hostname");
     }
 
     @Override
     public JsonObjectBuilder execute(RouterController routerController, HttpServletRequest request, HttpServletResponse response) throws APIMethodException {
+        String newHostname = request.getParameter("hostname");
+        this.getRouterController().setHostname(newHostname);
         JsonObjectBuilder responseJob = Json.createObjectBuilder();
-        Date sd = new Date();
-        this.getRouterController().writeConfiguration();
-        Date ed = new Date();
-        responseJob.add("Time", ed.getTime() - sd.getTime());
-        this.getRouterController().onConfigurationSaved();
+        responseJob.add("Success", true);
+        this.getRouterController().onConfigurationChanged();
         return responseJob;
     }
 
