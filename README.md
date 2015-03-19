@@ -1,1 +1,1 @@
-
+Smerovatko
