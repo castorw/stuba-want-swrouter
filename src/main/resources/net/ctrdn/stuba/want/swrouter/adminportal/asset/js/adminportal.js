@@ -37,9 +37,9 @@ function tree_reload() {
 
     // Routing Submenu
     tmhtml += "<li><span><i class=\"glyphicon glyphicon-random\"></i> IP Routing</span> <ul>";
-    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"routing-table\"><span><i class=\"glyphicon glyphicon-list\"></i> Routing Table</span></a></li>";
-    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"routing-static\"><span><i class=\"glyphicon glyphicon-share-alt\"></i> Static Routes</span></a></li>";
-    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"routing-ripv2\"><span><i class=\"glyphicon glyphicon-road\"></i> RIPv2 Routing</span></a></li>";
+    tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-table\"><span><i class=\"glyphicon glyphicon-list\"></i> Routing Table</span></a></li>";
+    tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-static\"><span><i class=\"glyphicon glyphicon-share-alt\"></i> Static Routes</span></a></li>";
+    tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-ripv2\"><span><i class=\"glyphicon glyphicon-road\"></i> RIPv2 Routing</span></a></li>";
     tmhtml += "</ul></li>";
 
     // Configuration Management
@@ -55,10 +55,10 @@ function tree_reload() {
             var children = $(this).parent('li.parent_li').find(' > ul > li');
             if (children.is(":visible")) {
                 children.hide('fast');
-                $(this).attr('title', 'Expand this branch').find(' > i').addClass('icon-plus-sign').removeClass('icon-minus-sign');
+                $(this).attr('title', 'Expand this branch').find(' > i').addClass('glyphicon-plus-sign').removeClass('glyphicon-minus-sign');
             } else {
                 children.show('fast');
-                $(this).attr('title', 'Collapse this branch').find(' > i').addClass('icon-minus-sign').removeClass('icon-plus-sign');
+                $(this).attr('title', 'Collapse this branch').find(' > i').addClass('glyphicon-minus-sign').removeClass('glyphicon-plus-sign');
             }
             e.stopPropagation();
         });
@@ -221,7 +221,7 @@ function get_view_network_interfaces() {
             html += "<td>" + obj["MTU"] + "</td>";
             html += "<td>" + obj["HardwareAddress"] + "</td > ";
             if (obj["IPv4Address"] === null) {
-                html += "<td><i><a href=\"#\" class=\"nic_address\" _interface=\"" + obj["Name"] + "\">-</a></i></td > ";
+                html += "<td><i><a href=\"#\" class=\"nic_address\" _interface=\"" + obj["Name"] + "\">unconfigured</a></i></td > ";
             } else {
                 html += "<td><a href=\"#\" class=\"nic_address\" _interface=\"" + obj["Name"] + "\">" + obj["IPv4Address"] + "/" + obj["IPv4NetworkMask"] + "</a></td > ";
             }
@@ -230,6 +230,7 @@ function get_view_network_interfaces() {
         }
         html += "</tbody>";
         html += "</table>";
+        html += "<div class=\"alert alert-warning\" role=\"alert\"><strong>Address removal!</strong> In order to remote interface IPv4 address, set the value to empty or dash.</div>";
 
         $("#content placeholder[identifier='network_interfaces']").html(html);
 
@@ -246,7 +247,7 @@ function get_view_network_interfaces() {
                 return d.promise();
             },
             success: function(response, newValue) {
-                if (!response["UserError"] !== null) {
+                if (response["UserError"] !== undefined) {
                     return response["UserError"];
                 } else {
                     tree_reload();

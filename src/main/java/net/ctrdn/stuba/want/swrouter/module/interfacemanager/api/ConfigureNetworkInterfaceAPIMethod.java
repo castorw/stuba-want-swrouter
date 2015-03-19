@@ -28,9 +28,14 @@ public class ConfigureNetworkInterfaceAPIMethod extends DefaultAPIMethod {
             JsonObjectBuilder responseJob = Json.createObjectBuilder();
             NetworkInterface nic = this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaceByName(request.getParameter("InterfaceName"));
             if (request.getParameter("IPv4Address") != null) {
-                IPv4Address address = IPv4Address.fromString(request.getParameter("IPv4Address"));
-                IPv4NetworkMask netmask = new IPv4NetworkMask(Integer.parseInt(request.getParameter("IPv4NetworkMask")));
-                nic.setIPv4InterfaceAddress(new IPv4InterfaceAddress(address, netmask));
+                if (request.getParameter("IPv4Address").trim().isEmpty() || request.getParameter("IPv4Address").trim().equals("-") || request.getParameter("IPv4Address").trim().equals("unconfigured")) {
+                    nic.setEnabled(false);
+                    nic.setIPv4InterfaceAddress(null);
+                } else {
+                    IPv4Address address = IPv4Address.fromString(request.getParameter("IPv4Address"));
+                    IPv4NetworkMask netmask = new IPv4NetworkMask(Integer.parseInt(request.getParameter("IPv4NetworkMask")));
+                    nic.setIPv4InterfaceAddress(new IPv4InterfaceAddress(address, netmask));
+                }
                 this.getRouterController().onConfigurationChanged();
             }
             if (request.getParameter("Enabled") != null) {
