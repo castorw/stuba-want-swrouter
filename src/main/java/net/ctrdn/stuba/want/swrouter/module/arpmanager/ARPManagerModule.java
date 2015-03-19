@@ -110,6 +110,10 @@ public class ARPManagerModule extends DefaultRouterModule {
         return this.routerController;
     }
 
+    public List<ARPTableEntry> getEntries() {
+        return this.arpTable;
+    }
+
     protected synchronized ARPTableEntry getARPTableEntry(IPv4Address protocolAddress, NetworkInterface networkInterface) {
         for (ARPTableEntry entry : this.arpTable) {
             if (entry.getProtocolAddress().equals(protocolAddress) && networkInterface == entry.getNetworkInterface()) {
