@@ -321,7 +321,7 @@ function get_view_configuration_management() {
         html += "<div style=\"width:100%; padding-bottom: 10px;\">";
         html += "<a class=\"btn btn-primary btn-sm\" href=\"#\" role=\"button\" id=\"download-config-button\"><i class=\"glyphicon glyphicon-download-alt\"></i> Download Running Configuration</a>";
         html += "</div>";
-        html += "<div class=\"well\"><pre class=\"json-syntax-highlight\">";
+        html += "<div class=\"well\"><strong>Running Configuration</strong><pre class=\"json-syntax-highlight\">";
         html += json_syntax_highlight(JSON.stringify(data["Response"]["RunningConfiguration"], undefined, 4));
         html += "</pre></div>";
 
@@ -424,14 +424,6 @@ function format_date(timestamp, fmt) {
         }
     });
 }
-
-
-
-
-
-
-
-
 
 function json_syntax_highlight(json) {
     json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
