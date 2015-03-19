@@ -142,7 +142,7 @@ public class InterfaceManagerModule extends DefaultRouterModule {
 
     @Override
     public int getLoadPriority() {
-        return 16;
+        return 64;
     }
 
     public NetworkInterface[] getNetworkInterfaces() {

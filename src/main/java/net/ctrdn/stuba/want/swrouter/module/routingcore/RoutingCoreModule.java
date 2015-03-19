@@ -54,7 +54,7 @@ public class RoutingCoreModule extends DefaultRouterModule {
 
     @Override
     public int getLoadPriority() {
-        return 512;
+        return 32;
     }
 
     public void installRoute(IPv4Route route) {
