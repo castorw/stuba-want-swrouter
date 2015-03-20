@@ -41,7 +41,6 @@ public class StaticIPv4Route implements IPv4Route {
     private final List<RouteGateway> gatewayList = Collections.synchronizedList(new ArrayList<RouteGateway>());
     private int nextGatewayIndex = 0;
     private final int administrativeDistance;
-    private final List<IPv4RouteFlag> flagList = new ArrayList<>();
 
     public StaticIPv4Route(IPv4Prefix targetPrefix, int administrativeDistance) {
         this.targetPrefix = targetPrefix;

@@ -108,6 +108,16 @@ public class StaticRoutingModule extends DefaultRouterModule {
         return 768;
     }
 
+    public void addRoute(StaticIPv4Route route) {
+        this.routeList.add(route);
+        this.routingCoreModule.installRoute(route);
+    }
+
+    public void removeRoute(StaticIPv4Route route) {
+        this.routeList.remove(route);
+        this.routingCoreModule.uninstallRoute(route);
+    }
+
     public void reinstallRoutes() {
         for (StaticIPv4Route route : this.routeList) {
             this.routingCoreModule.uninstallRoute(route);
