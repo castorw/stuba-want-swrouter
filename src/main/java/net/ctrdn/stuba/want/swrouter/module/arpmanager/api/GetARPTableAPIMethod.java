@@ -27,8 +27,15 @@ public class GetARPTableAPIMethod extends DefaultAPIMethod {
             for (ARPTableEntry entry : arpmm.getEntries()) {
                 JsonObjectBuilder entryJob = Json.createObjectBuilder();
                 entryJob.add("IPv4Address", entry.getProtocolAddress().toString());
-                entryJob.add("HardwareAddress", entry.getHardwareAddress().toString());
                 entryJob.add("NetworkInterface", entry.getNetworkInterface().getName());
+                entryJob.add("Complete", entry.isComplete());
+                if (entry.isComplete()) {
+                    entryJob.add("HardwareAddress", entry.getHardwareAddress().toString());
+                    entryJob.add("LastUpdateTimestamp", entry.getLastUpdateDate().getTime());
+                } else {
+                    entryJob.addNull("HardwareAddress");
+                    entryJob.addNull("LastUpdateTimestamp");
+                }
                 tableJab.add(entryJob);
             }
             responseJob.add("ARPTable", tableJab);

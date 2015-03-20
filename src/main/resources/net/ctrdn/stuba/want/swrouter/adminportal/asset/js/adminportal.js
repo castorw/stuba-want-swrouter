@@ -339,15 +339,21 @@ function get_view_arp() {
     call_swrouter_api("get-arp-table", function(data) {
         var html = "<h3><i class=\"glyphicon glyphicon-list\"></i> ARP Table</h3>";
         html += "<table class=\"table table-striped\">";
-        html += "<thead><tr><th width=\"16\"></th><th>IPv4 Address</th><th>Hardware Address</th><th>Network Interface</th></tr></thead>";
+        html += "<thead><tr><th width=\"16\"></th><th>IPv4 Address</th><th>Network Interface</th><th>Hardware Address</th><th>Last Updated</th></tr></thead>";
         html += "<tbody>";
         for (var i in data["Response"]["ARPTable"]) {
             var obj = data["Response"]["ARPTable"][i];
             html += "<tr>";
             html += "<td><i class=\"glyphicon glyphicon-screenshot\"></i></td>";
             html += "<td><strong>" + obj["IPv4Address"] + "</strong></td>";
-            html += "<td>" + obj["HardwareAddress"] + "</td>";
-            html += "<td>" + obj["NetworkInterface"] + "</td > ";
+            html += "<td>" + obj["NetworkInterface"] + "</td>";
+            if (obj.Complete) {
+                html += "<td>" + obj["HardwareAddress"] + "</td>";
+                html += "<td>" + moment(obj.LastUpdateTimestamp / 1000, "X").fromNow() + "</td>";
+            } else {
+                html += "<td><i>entry incomplete</i></td>";
+                html += "<td>-</td>";
+            }
             html += "</tr>";
         }
         html += "</tbody>";
