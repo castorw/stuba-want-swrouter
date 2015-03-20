@@ -242,7 +242,12 @@ function get_view_network_interfaces() {
             } else {
                 html += "<td><a href=\"#\" class=\"nic_address\" _interface=\"" + obj["Name"] + "\">" + obj["IPv4Address"] + "/" + obj["IPv4NetworkMask"] + "</a></td > ";
             }
-            html += "<td style=\"text-align: center;\"><a href=\#\" class=\"nic_enabled\" _interface=\"" + obj["Name"] + "\">" + ((obj["Enabled"]) ? "<i class=\"text-success glyphicon glyphicon-ok\"></i>" : "<i class=\"text-danger glyphicon glyphicon-remove\"></i>") + "</a></td>";
+
+            if (obj["Enabled"]) {
+                html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-danger nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a></td>";
+            } else {
+                html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-success nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-ok\"></i> Enable</a></td>";
+            }
             html += "</tr>";
         }
         html += "</tbody>";
@@ -463,7 +468,7 @@ function get_view_routing_static() {
             }
             html += "<td>" + gwString + "</td>";
             html += "<td>" + obj["AdministrativeDistance"] + "</td>";
-            html += "<td><a href=\"#\" data-remove-static-route=\"" + obj["ID"] + "\"><i class=\"text-danger glyphicon glyphicon-remove\"></i></a></td>";
+            html += "<td style=\"text-align: center;\"><a href=\"#\" data-remove-static-route=\"" + obj["ID"] + "\" class=\"btn btn-xs btn-danger nic_enabled\"><i class=\"glyphicon glyphicon-trash\"></i> Remove</a></td>";
             html += "</tr>";
         }
         html += "</tbody>";
