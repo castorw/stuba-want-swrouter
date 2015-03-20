@@ -1,6 +1,8 @@
 package net.ctrdn.stuba.want.swrouter.module.routingstatic;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -16,6 +18,7 @@ import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
+import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4Route;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteGateway;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.RoutingCoreModule;
 import org.slf4j.Logger;
@@ -52,6 +55,7 @@ public class StaticRoutingModule extends DefaultRouterModule {
                         this.logger.warn("Failed to load route", ex);
                     }
                 }
+                this.sortRoutes();
             }
         }
     }
@@ -110,6 +114,7 @@ public class StaticRoutingModule extends DefaultRouterModule {
 
     public void addRoute(StaticIPv4Route route) {
         this.routeList.add(route);
+        this.sortRoutes();
         this.routingCoreModule.installRoute(route);
     }
 
@@ -123,5 +128,37 @@ public class StaticRoutingModule extends DefaultRouterModule {
             this.routingCoreModule.uninstallRoute(route);
             this.routingCoreModule.installRoute(route);
         }
+    }
+
+    private void sortRoutes() {
+        Collections.sort(this.routeList, new Comparator<IPv4Route>() {
+
+            @Override
+            public int compare(IPv4Route o1, IPv4Route o2) {
+                try {
+                    if (o1.getTargetPrefix().equals(IPv4Prefix.fromString("0.0.0.0/0"))) {
+                        return 1;
+                    } else if (o2.getTargetPrefix().equals(IPv4Prefix.fromString("0.0.0.0/0"))) {
+                        return -1;
+                    }
+                    int prefixComp = o1.getTargetPrefix().getAddress().getDecimal() < o2.getTargetPrefix().getAddress().getDecimal() ? -1 : o1.getTargetPrefix().getAddress().getDecimal() == o2.getTargetPrefix().getAddress().getDecimal() ? 0 : 1;
+                    if (prefixComp == 0) {
+                        int adComp = o1.getAdministrativeDistance() < o2.getAdministrativeDistance() ? -1 : (o1.getAdministrativeDistance() == o2.getAdministrativeDistance()) ? 0 : 1;
+                        if (adComp == 0) {
+                            int nmlComp = o1.getTargetPrefix().getNetworkMask().getLength() < o2.getTargetPrefix().getNetworkMask().getLength() ? 1 : o1.getTargetPrefix().getNetworkMask().getLength() == o2.getTargetPrefix().getNetworkMask().getLength() ? 0 : -1;
+                            return nmlComp;
+                        }
+                        return adComp;
+                    }
+                    return prefixComp;
+                } catch (IPv4MathException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        });
+    }
+
+    public StaticIPv4Route[] getRoutes() {
+        return this.routeList.toArray(new StaticIPv4Route[this.routeList.size()]);
     }
 }

@@ -5,7 +5,7 @@ $(document).ready(function() {
 
     $(document).on("click", "#save-config-button", function(e) {
         call_swrouter_api("write-startup-configuration", function(data) {
-            tree_reload();
+            tree_reload(false);
             reload_view();
         });
         e.stopPropagation();
@@ -20,52 +20,54 @@ function tree_initialize() {
         e.stopPropagation();
     });
 
-    tree_reload();
+    tree_reload(true);
     load_view(current_view);
 }
 
-function tree_reload() {
-    var tmhtml = "<ul>";
-    tmhtml += "<li><span><i class=\"glyphicon glyphicon-cloud\"></i> <span class=\"tmph\" id=\"tmph--hostname\" /></span>";
-    tmhtml += "<ul>";
+function tree_reload(fullReload) {
+    if (fullReload) {
+        var tmhtml = "<ul>";
+        tmhtml += "<li><span><i class=\"glyphicon glyphicon-cloud\"></i> <span class=\"tmph\" id=\"tmph--hostname\" /></span>";
+        tmhtml += "<ul>";
 
-    // System Information
-    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"system-information\"><span><i class=\"glyphicon glyphicon-info-sign\"></i> System Information</span></a></li>";
+        // System Information
+        tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"system-information\"><span><i class=\"glyphicon glyphicon-info-sign\"></i> System Information</span></a></li>";
 
-    // Network Interfaces Submenu
-    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"network-interfaces\"><span><i class=\"glyphicon glyphicon-resize-horizontal\"></i> Network Interfaces</span></a></li>";
+        // Network Interfaces Submenu
+        tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"network-interfaces\"><span><i class=\"glyphicon glyphicon-resize-horizontal\"></i> Network Interfaces</span></a></li>";
 
-    // Address Resolution Protocol
-    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"arp\"><span><i class=\" glyphicon glyphicon-screenshot\"></i> Address Resolution Protocol</span></a></li>";
+        // Address Resolution Protocol
+        tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"arp\"><span><i class=\" glyphicon glyphicon-screenshot\"></i> Address Resolution Protocol</span></a></li>";
 
-    // Routing Submenu
-    tmhtml += "<li><span><i class=\"glyphicon glyphicon-random\"></i> IP Routing</span> <ul>";
-    tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-table\"><span><i class=\"glyphicon glyphicon-list\"></i> Routing Table</span></a></li>";
-    tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-static\"><span><i class=\"glyphicon glyphicon-share-alt\"></i> Static Routes</span></a></li>";
-    tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-ripv2\"><span><i class=\"glyphicon glyphicon-road\"></i> RIPv2 Routing</span></a></li>";
-    tmhtml += "</ul></li>";
+        // Routing Submenu
+        tmhtml += "<li><span><i class=\"glyphicon glyphicon-random\"></i> IP Routing</span> <ul>";
+        tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-table\"><span><i class=\"glyphicon glyphicon-list\"></i> Routing Table</span></a></li>";
+        tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-static\"><span><i class=\"glyphicon glyphicon-share-alt\"></i> Static Routes</span></a></li>";
+        tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-ripv2\"><span><i class=\"glyphicon glyphicon-road\"></i> RIPv2 Routing</span></a></li>";
+        tmhtml += "</ul></li>";
 
-    // Configuration Management
-    tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"configuration-management\"><span><i class=\"glyphicon glyphicon-wrench\"></i> Configuration Management</span></a></li>";
+        // Configuration Management
+        tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"configuration-management\"><span><i class=\"glyphicon glyphicon-wrench\"></i> Configuration Management</span></a></li>";
 
-    tmhtml += "</ul>";
-    tmhtml += "</li>";
-    tmhtml += "</ut>";
-    $("#treemenu").html(tmhtml);
-    $(function() {
-        $('.tree li:has(ul)').addClass('parent_li').find(' > span').attr('title', 'Collapse this branch');
-        $('.tree li.parent_li > span').on('click', function(e) {
-            var children = $(this).parent('li.parent_li').find(' > ul > li');
-            if (children.is(":visible")) {
-                children.hide('fast');
-                $(this).attr('title', 'Expand this branch').find(' > i').addClass('glyphicon-plus-sign').removeClass('glyphicon-minus-sign');
-            } else {
-                children.show('fast');
-                $(this).attr('title', 'Collapse this branch').find(' > i').addClass('glyphicon-minus-sign').removeClass('glyphicon-plus-sign');
-            }
-            e.stopPropagation();
+        tmhtml += "</ul>";
+        tmhtml += "</li>";
+        tmhtml += "</ut>";
+        $("#treemenu").html(tmhtml);
+        $(function() {
+            $('.tree li:has(ul)').addClass('parent_li').find(' > span').attr('title', 'Collapse this branch');
+            $('.tree li.parent_li > span').on('click', function(e) {
+                var children = $(this).parent('li.parent_li').find(' > ul > li');
+                if (children.is(":visible")) {
+                    children.hide('fast');
+                    $(this).attr('title', 'Expand this branch').find(' > i').addClass('glyphicon-plus-sign').removeClass('glyphicon-minus-sign');
+                } else {
+                    children.show('fast');
+                    $(this).attr('title', 'Collapse this branch').find(' > i').addClass('glyphicon-minus-sign').removeClass('glyphicon-plus-sign');
+                }
+                e.stopPropagation();
+            });
         });
-    });
+    }
 
     call_swrouter_api("get-system-information", function(data) {
         tree_set_placeholder("hostname", data["Response"]["Hostname"]);
@@ -93,6 +95,11 @@ function load_view(view_name) {
         case "routing-table":
             {
                 data = get_view_routing_table();
+                break;
+            }
+        case "routing-static":
+            {
+                data = get_view_routing_static();
                 break;
             }
         case "network-interfaces":
@@ -158,7 +165,7 @@ function get_view_system_information() {
             success: function(response, newValue) {
                 call_swrouter_api_params("set-hostname", "hostname=" + newValue, function(data) {
                     if (data["Response"]["Success"] === true) {
-                        tree_reload();
+                        tree_reload(false);
                     } else {
                         alert("Failed to change router hostname");
                     }
@@ -258,7 +265,7 @@ function get_view_network_interfaces() {
                 if (response["UserError"] !== undefined) {
                     return response["UserError"];
                 } else {
-                    tree_reload();
+                    tree_reload(false);
                     reload_view();
                 }
             }
@@ -269,7 +276,7 @@ function get_view_network_interfaces() {
                 if (data["UserError"] !== undefined) {
                     alert(data["UserError"]);
                 } else {
-                    tree_reload();
+                    tree_reload(false);
                     reload_view();
                 }
             });
@@ -290,7 +297,7 @@ function get_view_arp() {
                 + "<div class=\"panel-body\"><table class=\"table table-striped\">";
         html += "<tr><td width=\"30%\"><strong>Entry Timeout</strong></td><td><a href=\"#\" id=\"arp-entry-timeout\">" + data["Response"]["ARPConfiguration"]["EntryTimeout"] + "ms</a></td></tr>";
         html += "<tr><td><strong>Pipeline Resolution Timeout</strong></td><td><a href=\"#\" id=\"arp-pipeline-resolution-timeout\">" + data["Response"]["ARPConfiguration"]["PipelineResolutionTimeout"] + "ms</a></td></tr>";
-        html += "</table></div>";
+        html += "</table></div></div>";
 
         $("#content placeholder[identifier='arp_config']").html(html);
 
@@ -309,7 +316,7 @@ function get_view_arp() {
                 if (response["UserError"] !== undefined) {
                     return response["UserError"];
                 } else {
-                    tree_reload();
+                    tree_reload(false);
                     reload_view();
                 }
             }
@@ -330,7 +337,7 @@ function get_view_arp() {
                 if (response["UserError"] !== undefined) {
                     return response["UserError"];
                 } else {
-                    tree_reload();
+                    tree_reload(false);
                     reload_view();
                 }
             }
@@ -425,6 +432,102 @@ function get_view_routing_table() {
 
     return view_html;
 }
+
+function get_view_routing_static() {
+    var view_html = "<placeholder identifier=\"static_route_table\" /> <placeholder identifier=\"static_form\" />";
+
+    call_swrouter_api("get-static-ip-routes", function(data) {
+        var html = "<h3><i class=\"glyphicon glyphicon-share-alt\"></i> Static Routes</h3>";
+        html += "<table class=\"table table-striped\">";
+        html += "<thead><tr><th width=\"16\"></th><th>Destination</th><th>Gateways</th><th>Administrative Distance</th><th></th></tr></thead>";
+        html += "<tbody>";
+        for (var i in data["Response"]["StaticRoutes"]) {
+            var obj = data["Response"]["StaticRoutes"][i];
+            html += "<tr>";
+            if (obj["TargetPrefix"] === "0.0.0.0/0") {
+                html += "<td><i class=\"glyphicon glyphicon-globe\"></i></td>";
+            } else {
+                html += "<td><i class=\"glyphicon glyphicon-share-alt\"></i></td>";
+            }
+            html += "<td><strong>" + obj["TargetPrefix"] + "</strong></td>";
+
+            var gwString = "";
+            for (var j in obj["Gateways"]) {
+                var obj2 = obj["Gateways"][j];
+                if (gwString !== "") {
+                    gwString += "<br />";
+                }
+                gwString += obj2;
+            }
+            html += "<td>" + gwString + "</td>";
+            html += "<td>" + obj["AdministrativeDistance"] + "</td>";
+            html += "<td><a href=\"#\" data-remove-static-route=\"" + obj["ID"] + "\"><i class=\"text-danger glyphicon glyphicon-remove\"></i></a></td>";
+            html += "</tr>";
+        }
+        html += "</tbody>";
+        html += "</table>";
+        $("#content placeholder[identifier='static_route_table']").html(html);
+
+        $("#content placeholder[identifier='static_route_table'] a[data-remove-static-route]").click(function() {
+            call_swrouter_api_params("remove-static-ip-route", "ID=" + $(this).attr("data-remove-static-route"), function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+        });
+
+
+        html = "";
+        html += "<div class=\"panel panel-default\">"
+                + "<div class=\"panel-heading\">"
+                + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-plus\"></i> Add Static Route</h3>"
+                + "</div>"
+                + "<div class=\"panel-body\">"
+                + "<form class=\"form-vertical\" id=\"add_static_route_form\">"
+                + "<div class=\"form-group\">"
+                + "<label for=\"in_target\">Target Prefix</label>"
+                + "<input type=\"text\" class=\"form-control\" id=\"in_target-prefix\" placeholder=\"CIDR\">"
+                + " </div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_gateways\">Gateways</label>"
+                + " <input type=\"email\" class=\"form-control\" id=\"in_gateways\" placeholder=\"Comma-separated gateway list\">"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_administrative_distance\">Administrative Distance</label>"
+                + " <input type=\"email\" class=\"form-control\" id=\"in_administrative_distance\" placeholder=\"AD\" value=\"1\">"
+                + "</div>"
+                + "<button type=\"submit\" class=\"btn btn-default\">Add Route</button>"
+                + "</form>"
+                + "</div></div>";
+        $("#content placeholder[identifier='static_form']").html(html);
+
+        $("#content placeholder[identifier='static_form'] #add_static_route_form").submit(function() {
+            var post_data = "TargetPrefix=" + $("#in_target-prefix").val() + "&Gateways=" + $("#in_gateways").val() + "&AdministrativeDistance=" + $("#in_administrative_distance").val();
+            call_swrouter_api_params("add-static-ip-route", post_data, function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+            return false;
+        });
+    });
+
+    return view_html;
+}
+
+
+
+
+
+
+
+
 
 
 

@@ -3,6 +3,7 @@ package net.ctrdn.stuba.want.swrouter.module.routingstatic;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
@@ -11,6 +12,10 @@ import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteFlag;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4RouteGateway;
 
 public class StaticIPv4Route implements IPv4Route {
+
+    public UUID getRouteUuid() {
+        return routeUuid;
+    }
 
     public class RouteGateway implements IPv4RouteGateway {
 
@@ -37,6 +42,7 @@ public class StaticIPv4Route implements IPv4Route {
 
     }
 
+    private final UUID routeUuid = UUID.randomUUID();
     private final IPv4Prefix targetPrefix;
     private final List<RouteGateway> gatewayList = Collections.synchronizedList(new ArrayList<RouteGateway>());
     private int nextGatewayIndex = 0;
@@ -77,7 +83,7 @@ public class StaticIPv4Route implements IPv4Route {
         return new IPv4RouteFlag[]{new IPv4RouteFlag("S", "Static", "Administratively configured static route")};
     }
 
-    protected void addGatewayAddress(IPv4Address address) {
+    public void addGatewayAddress(IPv4Address address) {
         this.gatewayList.add(new RouteGateway(address));
     }
 
