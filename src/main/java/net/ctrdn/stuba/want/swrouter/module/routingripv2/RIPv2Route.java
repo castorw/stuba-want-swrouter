@@ -52,7 +52,7 @@ final public class RIPv2Route implements IPv4Route {
     private final List<RIPv2RouteEntry> routeEntryList = Collections.synchronizedList(new CopyOnWriteArrayList<RIPv2RouteEntry>());
     private RouteGateway[] activeGateways = new RouteGateway[0];
     private int nextGatewayIndex = 0;
-    private final IPv4RouteFlag ripFlag = new IPv4RouteFlag("r", "RIPv2", "Route learned through RIPv2 protocol");
+    private final IPv4RouteFlag ripFlag = new IPv4RouteFlag("R", "RIPv2", "Route learned through RIPv2 protocol");
 
     protected RIPv2Route(RIPv2RouteEntry initialRouteEntry) {
         this.targetPrefix = initialRouteEntry.getTargetPrefix();
