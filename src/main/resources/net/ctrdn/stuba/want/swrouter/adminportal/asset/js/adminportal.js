@@ -16,6 +16,8 @@ $(document).ready(function() {
 function tree_initialize() {
     $(document).on("click", ".tmlink", function(e) {
         view_name = $(this).attr("_open_view");
+        $("#treemenu a span.badge").removeClass("badge");
+        $("span", this).addClass("badge");
         load_view(view_name);
         e.stopPropagation();
     });
