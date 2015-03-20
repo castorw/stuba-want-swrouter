@@ -237,7 +237,7 @@ function get_view_network_interfaces() {
         }
         html += "</tbody>";
         html += "</table>";
-        html += "<div class=\"alert alert-warning\" role=\"alert\"><strong>Address removal!</strong> In order to remote interface IPv4 address, set the value to empty or dash.</div>";
+        html += "<div class=\"alert alert-warning\" role=\"alert\"><strong>Address removal!</strong> In order to remove interface IPv4 address, set the value to empty or dash.</div>";
 
         $("#content placeholder[identifier='network_interfaces']").html(html);
 
