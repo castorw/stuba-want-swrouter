@@ -362,6 +362,25 @@ function get_view_arp() {
         $("#content placeholder[identifier='arp_table']").html(html);
     });
 
+    call_swrouter_api("get-arp-virtual-addresses", function(data) {
+        var html = "<h3><i class=\"glyphicon glyphicon-tag\"></i> Virtual Addresses</h3>";
+        html += "<table class=\"table table-striped\">";
+        html += "<thead><tr><th width=\"16\"></th><th>IPv4 Address</th><th>Network Interface</th></tr></thead>";
+        html += "<tbody>";
+        for (var i in data["Response"]["ARPVirtualAddresses"]) {
+            var obj = data["Response"]["ARPVirtualAddresses"][i];
+            html += "<tr>";
+            html += "<td><i class=\"glyphicon glyphicon-tag\"></i></td>";
+            html += "<td><strong>" + obj["IPv4Address"] + "</strong></td>";
+            html += "<td>" + obj["NetworkInterface"] + "</td>";
+            html += "</tr>";
+        }
+        html += "</tbody>";
+        html += "</table>";
+
+        $("#content placeholder[identifier='arp_va']").html(html);
+    });
+
     return view_html;
 }
 
