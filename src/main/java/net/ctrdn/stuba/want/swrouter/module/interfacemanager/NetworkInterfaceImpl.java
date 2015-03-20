@@ -58,7 +58,7 @@ public class NetworkInterfaceImpl implements NetworkInterface {
             };
 
             while (this.running) {
-                this.networkInterface.pcap.loop(1, handler, null);
+                this.networkInterface.pcap.dispatch(10, handler, null);
             }
         }
     }
@@ -132,16 +132,18 @@ public class NetworkInterfaceImpl implements NetworkInterface {
                 StringBuilder errbuf = new StringBuilder();
                 this.logger.debug("Starting packet receiver for interface " + this.pcapInterface.getName());
                 this.pcap = Pcap.openLive(this.pcapInterface.getName(), 64 * 1024, Pcap.MODE_PROMISCUOUS, 10, errbuf);
-                this.pcap.setBufferSize(4000000);
 
                 if (pcap == null) {
                     this.logger.error("Failed to open device for capture: " + errbuf.toString());
                     return;
                 }
+            } else {
+                this.stop();
             }
 
             this.receiver = new Receiver();
             this.receiverThread = new Thread(this.receiver);
+            this.receiverThread.setName("InterfacePacketReceived- " + this.getName());
             this.receiverThread.start();
 
             this.installConnectedRoute();
