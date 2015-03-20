@@ -37,6 +37,7 @@ function tree_reload() {
 
     // Address Resolution Protocol
     tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"arp\"><span><i class=\" glyphicon glyphicon-screenshot\"></i> Address Resolution Protocol</span></a></li>";
+
     // Routing Submenu
     tmhtml += "<li><span><i class=\"glyphicon glyphicon-random\"></i> IP Routing</span> <ul>";
     tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-table\"><span><i class=\"glyphicon glyphicon-list\"></i> Routing Table</span></a></li>";
@@ -396,7 +397,11 @@ function get_view_routing_table() {
         for (var i in data["Response"]["InstalledRoutes"]) {
             var obj = data["Response"]["InstalledRoutes"][i];
             html += "<tr>";
-            html += "<td><i class=\"glyphicon glyphicon-share-alt\"></i></td>";
+            if (obj["TargetPrefix"] === "0.0.0.0/0") {
+                html += "<td><i class=\"glyphicon glyphicon-globe\"></i></td>";
+            } else {
+                html += "<td><i class=\"glyphicon glyphicon-share-alt\"></i></td>";
+            }
             html += "<td>" + obj["Flags"] + "</td>";
             html += "<td><strong>" + obj["TargetPrefix"] + "</strong></td>";
 
