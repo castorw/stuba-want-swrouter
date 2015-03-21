@@ -57,9 +57,12 @@ public class NATModule extends DefaultRouterModule {
                     }
                     for (NATTranslation xlation : removeList) {
                         try {
-                            xlation.deactivate();
-                            NATModule.this.translationList.remove(xlation);
-                            NATModule.this.logger.debug("NAT Translation {} installed by {} has timed out", xlation, xlation.getInstallerRule());
+                            if (currentDate.getTime() - xlation.getLastActivityDate().getTime() > xlation.getTimeout() + NATModule.this.getTranslationHoldDownTimeout()) {
+                                NATModule.this.translationList.remove(xlation);
+                            } else {
+                                xlation.deactivate();
+                                NATModule.this.logger.debug("NAT Translation {} installed by {} has timed out and is entering hold-down state", xlation, xlation.getInstallerRule());
+                            }
                         } catch (NATTranslationException ex) {
                             NATModule.this.logger.warn("Problem deactivating NAT Translation", ex);
                         }
@@ -76,6 +79,7 @@ public class NATModule extends DefaultRouterModule {
     private final Logger logger = LoggerFactory.getLogger(NATModule.class);
     private int addressTranslationTimeout = 300000;
     private int portTranslationTimeout = 300000;
+    private int translationHoldDownTimeout = 10000;
     private final List<NATPool> poolList = new ArrayList<>();
     private final List<NATRule> ruleList = Collections.synchronizedList(new ArrayList<NATRule>());
     private final List<NATTranslation> translationList = Collections.synchronizedList(new CopyOnWriteArrayList<NATTranslation>());
@@ -96,8 +100,9 @@ public class NATModule extends DefaultRouterModule {
             JsonArray rulesArray = moduleConfiguration.getJsonArray("Rules");
 
             if (timerConfigObject != null) {
-                this.addressTranslationTimeout = timerConfigObject.getInt("AddressTranslationTimeout", 60000);
-                this.portTranslationTimeout = timerConfigObject.getInt("PortTranslationTimeout", 120000);
+                this.setAddressTranslationTimeout(timerConfigObject.getInt("AddressTranslationTimeout", 60000));
+                this.setPortTranslationTimeout(timerConfigObject.getInt("PortTranslationTimeout", 120000));
+                this.setTranslationHoldDownTimeout(timerConfigObject.getInt("HoldDownTimeout", 10000));
                 this.configureTimeouts();
             }
 
@@ -196,8 +201,9 @@ public class NATModule extends DefaultRouterModule {
         JsonObjectBuilder configJob = Json.createObjectBuilder();
 
         JsonObjectBuilder timersJob = Json.createObjectBuilder();
-        timersJob.add("AddressTranslationTimeout", this.addressTranslationTimeout);
-        timersJob.add("PortTranslationTimeout", this.portTranslationTimeout);
+        timersJob.add("AddressTranslationTimeout", this.getAddressTranslationTimeout());
+        timersJob.add("PortTranslationTimeout", this.getPortTranslationTimeout());
+        timersJob.add("HoldDownTimeout", this.getTranslationHoldDownTimeout());
         configJob.add("Timers", timersJob);
 
         JsonArrayBuilder addressPoolJab = Json.createArrayBuilder();
@@ -328,6 +334,22 @@ public class NATModule extends DefaultRouterModule {
 
     public int getPortTranslationTimeout() {
         return portTranslationTimeout;
+    }
+
+    public int getTranslationHoldDownTimeout() {
+        return translationHoldDownTimeout;
+    }
+
+    public void setAddressTranslationTimeout(int addressTranslationTimeout) {
+        this.addressTranslationTimeout = addressTranslationTimeout;
+    }
+
+    public void setPortTranslationTimeout(int portTranslationTimeout) {
+        this.portTranslationTimeout = portTranslationTimeout;
+    }
+
+    public void setTranslationHoldDownTimeout(int translationHoldDownTimeout) {
+        this.translationHoldDownTimeout = translationHoldDownTimeout;
     }
 
     public List<NATPool> getPoolList() {
