@@ -699,7 +699,36 @@ function get_view_routing_ripv2(is_refresh) {
 }
 
 function get_view_nat_configuration(is_refresh) {
-    var view_html = "";
+    var view_html = "<h3><i class=\"glyphicon glyphicon-random\"></i> NAT Configuration</h3> <placeholder identifier=\"nat_configuration\" /> <placeholder identifier=\"nat_pools\" /> <placeholder identifier=\"nat_rules\" />";
+
+    call_swrouter_api("get-nat-configuration", function(data) {
+        var html = "<table class=\"table table-striped\">";
+        html += "<tr><td width=\"30%\"><strong>Address Translation Timeout</strong></td><td><a href=\"#\" data-nat-param=\"AddressTranslationTimeout\">" + data["Response"]["NATConfiguration"]["AddressTranslationTimeout"] + "ms</a></td></tr>";
+        html += "<tr><td><strong>Port Translation Timeout</strong></td><td><a href=\"#\" data-nat-param=\"PortTranslationTimeout\">" + data["Response"]["NATConfiguration"]["PortTranslationTimeout"] + "ms</a></td></tr>";
+        html += "<tr><td><strong>Translation Hold Down Timeout</strong></td><td><a href=\"#\" data-nat-param=\"TranslationHoldDownTimeout\">" + data["Response"]["NATConfiguration"]["TranslationHoldDownTimeout"] + "ms</a></td></tr>";
+        html += "</table>";
+
+        $("#content placeholder[identifier='nat_configuration']").html(html);
+
+        $("a[data-nat-param]").editable({
+            url: function(params) {
+                var d = new $.Deferred;
+                call_swrouter_api_params("configure-nat", $(this).attr("data-nat-param") + "=" + params.value, function(data) {
+                    d.resolve(data);
+                });
+                return d.promise();
+            },
+            success: function(response, newValue) {
+                if (response["UserError"] !== undefined) {
+                    return response["UserError"];
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            }
+        });
+    });
+
     return view_html;
 }
 
