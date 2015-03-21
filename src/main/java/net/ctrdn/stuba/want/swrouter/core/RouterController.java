@@ -54,7 +54,7 @@ public class RouterController {
             this.bootDate = new Date();
             this.logger.info("Shitstorm Operating System Initializing...");
             this.logger.info("SHOS v19.12.1 by Shitstorm Telecommunicatons, compiled by shit_rel_team");
-            this.logger.info("This product contains ufopornographic and alien abuse-related content and is not to be released to public. Any misuse or redistribution of content contained within this product is prohibited and will be prosecuted according to the law of the Vajnorska street.");
+            this.logger.info("This product contains ufopornographic and alien abuse-related content and is not to be released to public. Any misuse or redistribution of content contained within this product is prohibited and will be prosecuted according to the law of National Aeronautics and Space Administration (NASA) in scope of foreign civilisation pornographic content policies.");
             this.loadConfiguration();
             this.startPacketProcessor();
             this.loadModules();
