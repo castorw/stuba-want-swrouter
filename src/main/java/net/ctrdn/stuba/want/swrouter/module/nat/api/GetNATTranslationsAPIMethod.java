@@ -27,7 +27,7 @@ public class GetNATTranslationsAPIMethod extends DefaultAPIMethod {
             JsonArrayBuilder xlationsJab = Json.createArrayBuilder();
             for (NATTranslation xlation : natModule.getTranslationList()) {
                 JsonObjectBuilder xlationJob = Json.createObjectBuilder();
-                xlationJob.add("Rule", xlation.toString());
+                xlationJob.add("Summary", xlation.toString());
                 xlationJob.add("LastActivityDate", xlation.getLastActivityDate().toString());
                 xlationJob.add("Timeout", xlation.getTimeout());
                 xlationJob.add("TimeRemaining", xlation.getTimeout() - (new Date().getTime() - xlation.getLastActivityDate().getTime()));
