@@ -386,7 +386,7 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
             List<IPv4Prefix> addedPrefixes = new ArrayList<>();
 
             for (NetworkInterface iface2 : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
-                if (ignoredInterface != iface2 && iface2.getIPv4InterfaceAddress() != null && !addedPrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
+                if (ignoredInterface != iface2 && iface2.getIPv4InterfaceAddress() != null && !addedPrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix()) && this.configuredPrefixesContain(iface2.getIPv4InterfaceAddress().getPrefix())) {
                     if (includePrefixes == null || includePrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
                         outputEntryList.add(new RIPv2RouteEntry(2, iface2.getIPv4InterfaceAddress().getAddress(), 0, iface2.getIPv4InterfaceAddress().getPrefix(), IPv4Address.fromString("0.0.0.0"), 1));
                         addedPrefixes.add(iface2.getIPv4InterfaceAddress().getPrefix());
@@ -490,5 +490,23 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
         } catch (NoSuchModuleException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public boolean configuredPrefixesContain(IPv4Address address) {
+        for (IPv4Prefix p : this.networkPrefixList) {
+            if (p.containsAddress(address)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean configuredPrefixesContain(IPv4Prefix prefix) {
+        for (IPv4Prefix p : this.networkPrefixList) {
+            if (p.containsPrefix(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -69,6 +69,10 @@ public class RIPv2PipelineBranch extends DefaultPipelineBranch {
 
     private void processRIPPacket(Packet packet) throws PacketException {
         try {
+            if (!this.routingModule.configuredPrefixesContain(packet.getSourceIPv4Address())) {
+                this.logger.debug("Received RIPv2 packet from address {}, which is not configured in RIPv2 networks", packet.getSourceIPv4Address());
+                return;
+            }
             RIPv2PacketEncapsulation ripEncap = new RIPv2PacketEncapsulation(new UDPForIPv4PacketEncapsulation(packet), false);
             if (ripEncap.getCommand() == (short) 2) {
                 this.logger.debug("Received RIPv2 Response from {}", packet.getSourceIPv4Address());
