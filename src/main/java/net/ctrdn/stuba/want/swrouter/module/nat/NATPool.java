@@ -2,12 +2,14 @@ package net.ctrdn.stuba.want.swrouter.module.nat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.exception.NATException;
 
 public class NATPool {
 
+    private final UUID id;
     private final NATModule natModule;
     private final String name;
     private final IPv4Prefix prefix;
@@ -17,6 +19,7 @@ public class NATPool {
         this.natModule = natModule;
         this.name = name;
         this.prefix = prefix;
+        this.id = UUID.randomUUID();
     }
 
     protected void addAddress(IPv4Address address) throws NATException {
@@ -37,5 +40,9 @@ public class NATPool {
 
     public List<NATAddress> getAddressList() {
         return addressList;
+    }
+
+    public UUID getID() {
+        return this.id;
     }
 }
