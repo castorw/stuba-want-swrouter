@@ -249,9 +249,9 @@ function get_view_network_interfaces() {
             }
 
             if (obj["Enabled"]) {
-                html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-danger nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a></td>";
+                html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-danger nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a></td>";
             } else {
-                html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-success nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-ok\"></i> Enable</a></td>";
+                html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-success nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-ok\"></i> Enable</a></td>";
             }
             html += "</tr>";
         }
@@ -473,7 +473,7 @@ function get_view_routing_static() {
             }
             html += "<td>" + gwString + "</td>";
             html += "<td>" + obj["AdministrativeDistance"] + "</td>";
-            html += "<td style=\"text-align: center;\"><a href=\"#\" data-remove-static-route=\"" + obj["ID"] + "\" class=\"btn btn-xs btn-danger nic_enabled\"><i class=\"glyphicon glyphicon-trash\"></i> Remove</a></td>";
+            html += "<td style=\"text-align: right;\"><a href=\"#\" data-remove-static-route=\"" + obj["ID"] + "\" class=\"btn btn-xs btn-danger nic_enabled\"><i class=\"glyphicon glyphicon-trash\"></i> Remove</a></td>";
             html += "</tr>";
         }
         html += "</tbody>";
@@ -580,9 +580,9 @@ function get_view_routing_ripv2() {
             var iface = data["Response"]["RIPv2Interfaces"][i];
             html += "<tr><td><strong>" + iface["Name"] + "</strong></td>";
             if (iface["Enabled"]) {
-                html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-danger\" data-ripv2-iface-toggle=\"" + iface["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a></td>";
+                html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-danger\" data-ripv2-iface-toggle=\"" + iface["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a></td>";
             } else {
-                html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-success\" data-ripv2-iface-toggle=\"" + iface["Name"] + "\"><i class=\"glyphicon glyphicon-ok\"></i> Enable</a></td>";
+                html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-success\" data-ripv2-iface-toggle=\"" + iface["Name"] + "\"><i class=\"glyphicon glyphicon-ok\"></i> Enable</a></td>";
             }
             html += "</tr>";
         }
@@ -612,7 +612,7 @@ function get_view_routing_ripv2() {
         for (var i in data["Response"]["RIPv2Networks"]) {
             var network = data["Response"]["RIPv2Networks"][i];
             html += "<tr><td><strong>" + network + "</strong></td>";
-            html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-danger\" data-ripv2-network-delete=\"" + network + "\"><i class=\"glyphicon glyphicon-trash\"></i> Remove</a></td>";
+            html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-danger\" data-ripv2-network-delete=\"" + network + "\"><i class=\"glyphicon glyphicon-trash\"></i> Remove</a></td>";
             html += "</tr>";
         }
         html += "</table>"
@@ -623,7 +623,7 @@ function get_view_routing_ripv2() {
                 + " </div>"
                 + "<button type=\"submit\" class=\"btn btn-default\">Add Network</button>"
                 + "</form>"
-        html += "</div></div>";
+                + "</div></div>";
 
         $("#content placeholder[identifier='ripv2_networks']").html(html);
 
