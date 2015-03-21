@@ -33,6 +33,7 @@ public class GetNATTranslationsAPIMethod extends DefaultAPIMethod {
                 xlationJob.add("TimeRemaining", xlation.getTimeout() - (new Date().getTime() - xlation.getLastActivityDate().getTime()));
                 xlationJob.add("TranslateHitCount", xlation.getTranslateHitCount());
                 xlationJob.add("UntranslateHitCount", xlation.getUntranslateHitCount());
+                xlationJob.add("Type", (xlation.getProtocol() != null) ? "PAT" : "NAT");
                 xlationJob.add("Active", xlation.isActive());
                 xlationsJab.add(xlationJob);
             }
