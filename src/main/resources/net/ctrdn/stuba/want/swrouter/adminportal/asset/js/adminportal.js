@@ -1,7 +1,9 @@
 var current_view = "system-information";
+var current_view_autorefresh = true;
 
 $(document).ready(function() {
     tree_initialize();
+    autorefresh_view();
 
     $(document).on("click", "#save-config-button", function(e) {
         call_swrouter_api("write-startup-configuration", function(data) {
@@ -18,12 +20,12 @@ function tree_initialize() {
         view_name = $(this).attr("_open_view");
         $("#treemenu a span.badge").removeClass("badge");
         $("span", this).addClass("badge");
-        load_view(view_name);
+        load_view(view_name, false);
         e.stopPropagation();
     });
 
     tree_reload(true);
-    load_view(current_view);
+    load_view(current_view, false);
 }
 
 function tree_reload(fullReload) {
@@ -91,52 +93,70 @@ function tree_set_placeholder(name, value) {
     $("#treemenu #tmph--" + name).html(value);
 }
 
-function load_view(view_name) {
+function load_view(view_name, is_refresh) {
     reset_view();
     data = "";
     switch (view_name) {
         case "system-information":
             {
-                data = get_view_system_information();
+                data = get_view_system_information(is_refresh);
+                current_view_autorefresh = true;
                 break;
             }
         case "routing-table":
             {
-                data = get_view_routing_table();
+                data = get_view_routing_table(is_refresh);
+                current_view_autorefresh = true;
                 break;
             }
         case "routing-static":
             {
-                data = get_view_routing_static();
+                data = get_view_routing_static(is_refresh);
+                current_view_autorefresh = false;
                 break;
             }
         case "routing-ripv2":
             {
-                data = get_view_routing_ripv2();
+                data = get_view_routing_ripv2(is_refresh);
+                current_view_autorefresh = false;
                 break;
             }
         case "network-interfaces":
             {
-                data = get_view_network_interfaces();
+                data = get_view_network_interfaces(is_refresh);
+                current_view_autorefresh = false;
                 break;
             }
         case "configuration-management":
             {
-                data = get_view_configuration_management();
+                data = get_view_configuration_management(is_refresh);
+                current_view_autorefresh = false;
                 break;
             }
         case "arp":
             {
-                data = get_view_arp();
+                data = get_view_arp(is_refresh);
+                current_view_autorefresh = true;
                 break;
             }
     }
-    current_view = view_name;
-    $("#content").html(data);
+    if (!is_refresh) {
+        current_view = view_name;
+        $("#content").html(data);
+    }
 }
 
 function reload_view() {
-    load_view(current_view);
+    load_view(current_view, true);
+}
+
+function autorefresh_view() {
+    if (current_view_autorefresh) {
+        reload_view();
+    }
+    setTimeout(function() {
+        autorefresh_view();
+    }, 1000);
 }
 
 function reset_view() {
@@ -155,36 +175,41 @@ function reset_view() {
 
 
 
-function get_view_system_information() {
+function get_view_system_information(is_refresh) {
     var view_html = "<placeholder identifier=\"system_info\" /><placeholder identifier=\"modules\" /><placeholder identifier=\"pipeline\" />";
     call_swrouter_api("get-system-information", function(data) {
-        var html = "<h2><i class=\"glyphicon glyphicon-info-sign\"></i> System Information</h2>";
-        html += "<table class=\"table\">";
-        html += "<tbody>";
-        html += "<tr><td><strong>Hostname</strong></td><td><a href=\"#\" id=\"hostname\">" + data["Response"]["Hostname"] + "</a></td></tr>";
-        html += "<tr><td><strong>Uptime</strong></td><td>" + data["Response"]["Uptime"] + "</td></tr>";
-        html += "<tr><td><strong>Boot Date</strong></td><td>" + data["Response"]["BootDate"] + "</td></tr>";
-        html += "<tr><td><strong>Boot Time</strong></td><td>" + data["Response"]["BootTime"] + "</td></tr>";
-        html += "<tr><td><strong>Interface Count</strong></td><td>" + data["Response"]["InterfaceCount"] + "</td></tr>";
-        html += "</tbody>";
-        html += "</table>";
+        if (!is_refresh) {
+            var html = "<h2><i class=\"glyphicon glyphicon-info-sign\"></i> System Information</h2>";
+            html += "<table class=\"table\">";
+            html += "<tbody>";
+            html += "<tr><td><strong>Hostname</strong></td><td><a href=\"#\" id=\"hostname\">" + data["Response"]["Hostname"] + "</a></td></tr>";
+            html += "<tr><td><strong>Uptime</strong></td><td id=\"uptime\">" + data["Response"]["Uptime"] + "ms</td></tr>";
+            html += "<tr><td><strong>Boot Date</strong></td><td>" + data["Response"]["BootDate"] + "</td></tr>";
+            html += "<tr><td><strong>Boot Time</strong></td><td>" + data["Response"]["BootTime"] + "</td></tr>";
+            html += "<tr><td><strong>Interface Count</strong></td><td>" + data["Response"]["InterfaceCount"] + "</td></tr>";
+            html += "</tbody>";
+            html += "</table>";
 
-        $("#content placeholder[identifier='system_info']").html(html);
-
-        $("#content placeholder[identifier='system_info'] #hostname").editable({
-            type: 'text',
-            title: 'Enter Hostname',
-            placement: "right",
-            success: function(response, newValue) {
-                call_swrouter_api_params("set-hostname", "hostname=" + newValue, function(data) {
-                    if (data["Response"]["Success"] === true) {
-                        tree_reload(false);
-                    } else {
-                        alert("Failed to change router hostname");
-                    }
-                });
-            }
-        });
+            $("#content placeholder[identifier='system_info']").html(html);
+        } else {
+            $("#content placeholder[identifier='system_info'] td#uptime").html(data["Response"]["Uptime"] + "ms");
+        }
+        if (!is_refresh) {
+            $("#content placeholder[identifier='system_info'] #hostname").editable({
+                type: 'text',
+                title: 'Enter Hostname',
+                placement: "right",
+                success: function(response, newValue) {
+                    call_swrouter_api_params("set-hostname", "hostname=" + newValue, function(data) {
+                        if (data["Response"]["Success"] === true) {
+                            tree_reload(false);
+                        } else {
+                            alert("Failed to change router hostname");
+                        }
+                    });
+                }
+            });
+        }
     });
 
     call_swrouter_api("get-modules", function(data) {
@@ -234,7 +259,7 @@ function get_view_system_information() {
 
 
 
-function get_view_network_interfaces() {
+function get_view_network_interfaces(is_refresh) {
     var view_html = "<placeholder identifier=\"network_interfaces\" />";
     call_swrouter_api("get-network-interfaces", function(data) {
         var html = "<h3><i class=\"glyphicon glyphicon-resize-horizontal\"></i> Network Interfaces</h3>";
@@ -304,63 +329,65 @@ function get_view_network_interfaces() {
     return view_html;
 }
 
-function get_view_arp() {
+function get_view_arp(is_refresh) {
     var view_html = "<h3><i class=\"glyphicon glyphicon-screenshot\"></i> Address Resolution Protocol</h3> <placeholder identifier=\"arp_config\" /> <placeholder identifier=\"arp_table\" /> <placeholder identifier=\"arp_va\" />";
 
-    call_swrouter_api("get-arp-configuration", function(data) {
-        var html = "<div class=\"panel panel-default\">"
-                + "<div class=\"panel-heading\">"
-                + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-wrench\"></i> Configuration</h3>"
-                + "</div>"
-                + "<div class=\"panel-body\"><table class=\"table table-striped\">";
-        html += "<tr><td width=\"30%\"><strong>Entry Timeout</strong></td><td><a href=\"#\" id=\"arp-entry-timeout\">" + data["Response"]["ARPConfiguration"]["EntryTimeout"] + "ms</a></td></tr>";
-        html += "<tr><td><strong>Pipeline Resolution Timeout</strong></td><td><a href=\"#\" id=\"arp-pipeline-resolution-timeout\">" + data["Response"]["ARPConfiguration"]["PipelineResolutionTimeout"] + "ms</a></td></tr>";
-        html += "</table></div></div>";
+    if (!is_refresh) {
+        call_swrouter_api("get-arp-configuration", function(data) {
+            var html = "<div class=\"panel panel-default\">"
+                    + "<div class=\"panel-heading\">"
+                    + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-wrench\"></i> Configuration</h3>"
+                    + "</div>"
+                    + "<div class=\"panel-body\"><table class=\"table table-striped\">";
+            html += "<tr><td width=\"30%\"><strong>Entry Timeout</strong></td><td><a href=\"#\" id=\"arp-entry-timeout\">" + data["Response"]["ARPConfiguration"]["EntryTimeout"] + "ms</a></td></tr>";
+            html += "<tr><td><strong>Pipeline Resolution Timeout</strong></td><td><a href=\"#\" id=\"arp-pipeline-resolution-timeout\">" + data["Response"]["ARPConfiguration"]["PipelineResolutionTimeout"] + "ms</a></td></tr>";
+            html += "</table></div></div>";
 
-        $("#content placeholder[identifier='arp_config']").html(html);
+            $("#content placeholder[identifier='arp_config']").html(html);
 
-        $("#arp-entry-timeout").editable({
-            type: "text",
-            title: 'Enter ARP entry timeout',
-            placement: "right",
-            url: function(params) {
-                var d = new $.Deferred;
-                call_swrouter_api_params("configure-arp", "EntryTimeout=" + params.value, function(data) {
-                    d.resolve(data);
-                });
-                return d.promise();
-            },
-            success: function(response, newValue) {
-                if (response["UserError"] !== undefined) {
-                    return response["UserError"];
-                } else {
-                    tree_reload(false);
-                    reload_view();
+            $("#arp-entry-timeout").editable({
+                type: "text",
+                title: 'Enter ARP entry timeout',
+                placement: "right",
+                url: function(params) {
+                    var d = new $.Deferred;
+                    call_swrouter_api_params("configure-arp", "EntryTimeout=" + params.value, function(data) {
+                        d.resolve(data);
+                    });
+                    return d.promise();
+                },
+                success: function(response, newValue) {
+                    if (response["UserError"] !== undefined) {
+                        return response["UserError"];
+                    } else {
+                        tree_reload(false);
+                        reload_view();
+                    }
                 }
-            }
-        });
+            });
 
-        $("#arp-pipeline-resolution-timeout").editable({
-            type: "text",
-            title: 'Enter ARP pipeline resolution timeout"',
-            placement: "right",
-            url: function(params) {
-                var d = new $.Deferred;
-                call_swrouter_api_params("configure-arp", "PipelineResolutionTimeout=" + params.value, function(data) {
-                    d.resolve(data);
-                });
-                return d.promise();
-            },
-            success: function(response, newValue) {
-                if (response["UserError"] !== undefined) {
-                    return response["UserError"];
-                } else {
-                    tree_reload(false);
-                    reload_view();
+            $("#arp-pipeline-resolution-timeout").editable({
+                type: "text",
+                title: 'Enter ARP pipeline resolution timeout"',
+                placement: "right",
+                url: function(params) {
+                    var d = new $.Deferred;
+                    call_swrouter_api_params("configure-arp", "PipelineResolutionTimeout=" + params.value, function(data) {
+                        d.resolve(data);
+                    });
+                    return d.promise();
+                },
+                success: function(response, newValue) {
+                    if (response["UserError"] !== undefined) {
+                        return response["UserError"];
+                    } else {
+                        tree_reload(false);
+                        reload_view();
+                    }
                 }
-            }
+            });
         });
-    });
+    }
 
     call_swrouter_api("get-arp-table", function(data) {
         var html = "<h3><i class=\"glyphicon glyphicon-list\"></i> ARP Table</h3>";
@@ -411,7 +438,7 @@ function get_view_arp() {
 }
 
 
-function get_view_routing_table() {
+function get_view_routing_table(is_refresh) {
     var view_html = "<placeholder identifier=\"routing_table\" />";
 
     call_swrouter_api("get-ip-routes", function(data) {
@@ -451,7 +478,7 @@ function get_view_routing_table() {
     return view_html;
 }
 
-function get_view_routing_static() {
+function get_view_routing_static(is_refresh) {
     var view_html = "<placeholder identifier=\"static_route_table\" /> <placeholder identifier=\"static_form\" />";
 
     call_swrouter_api("get-static-ip-routes", function(data) {
@@ -539,7 +566,7 @@ function get_view_routing_static() {
     return view_html;
 }
 
-function get_view_routing_ripv2() {
+function get_view_routing_ripv2(is_refresh) {
     var view_html = "<h3><i class=\"glyphicon glyphicon-road\"></i> Routing Information Protocol v2</h3><placeholder identifier=\"ripv2_config\" /><div style=\"width:100%\"><div style=\"width:49%; float:left;\"><placeholder identifier=\"ripv2_interfaces\" /></div><div style=\"width:49%; float:right;\"><placeholder identifier=\"ripv2_networks\" /></div>";
 
     call_swrouter_api("get-ripv2-configuration", function(data) {
@@ -670,7 +697,7 @@ function get_view_routing_ripv2() {
 
 
 
-function get_view_configuration_management() {
+function get_view_configuration_management(is_refresh) {
     var view_html = "<placeholder identifier=\"configuration_management\" />";
 
     call_swrouter_api("get-running-configuration", function(data) {
