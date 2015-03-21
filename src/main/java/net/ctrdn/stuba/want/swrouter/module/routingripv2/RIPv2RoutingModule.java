@@ -175,9 +175,9 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
                 }
             }
             if (moduleConfiguration.containsKey("Timers")) {
-                this.updateInterval = moduleConfiguration.getJsonObject("Timers").getInt("UpdateInterval");
-                this.holdDownTimeout = moduleConfiguration.getJsonObject("Timers").getInt("HoldDownTimeout");
-                this.flushTimeout = moduleConfiguration.getJsonObject("Timers").getInt("FlushTimeout");
+                this.setUpdateInterval(moduleConfiguration.getJsonObject("Timers").getInt("UpdateInterval"));
+                this.setHoldDownTimeout(moduleConfiguration.getJsonObject("Timers").getInt("HoldDownTimeout"));
+                this.setFlushTimeout(moduleConfiguration.getJsonObject("Timers").getInt("FlushTimeout"));
             }
             if (moduleConfiguration.containsKey("Networks")) {
                 JsonArray networksArray = moduleConfiguration.getJsonArray("Networks");
@@ -188,7 +188,7 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
                             this.logger.warn("{} is not a valid RIPv2 network", networkString.getString());
                         } else {
                             IPv4Prefix networkPrefix = new IPv4Prefix(IPv4Address.fromString(explode[0]), new IPv4NetworkMask(Integer.parseInt(explode[1])));
-                            this.networkPrefixList.add(networkPrefix);
+                            this.getNetworkPrefixList().add(networkPrefix);
                         }
                     } catch (IPv4MathException | NumberFormatException ex) {
                         this.logger.warn("Failed to add RIPv2 network {}", networkString.getString(), ex);
@@ -211,13 +211,13 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
         configJob.add("Interfaces", interfacesJob);
 
         JsonObjectBuilder timersJob = Json.createObjectBuilder();
-        timersJob.add("UpdateInterval", this.updateInterval);
-        timersJob.add("HoldDownTimeout", this.holdDownTimeout);
-        timersJob.add("FlushTimeout", this.flushTimeout);
+        timersJob.add("UpdateInterval", this.getUpdateInterval());
+        timersJob.add("HoldDownTimeout", this.getHoldDownTimeout());
+        timersJob.add("FlushTimeout", this.getFlushTimeout());
         configJob.add("Timers", timersJob);
 
         JsonArrayBuilder networksJab = Json.createArrayBuilder();
-        for (IPv4Prefix prefix : this.networkPrefixList) {
+        for (IPv4Prefix prefix : this.getNetworkPrefixList()) {
             networksJab.add(prefix.toString());
         }
         configJob.add("Networks", networksJab);
@@ -321,6 +321,22 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
 
     public int getFlushTimeout() {
         return flushTimeout;
+    }
+
+    public List<IPv4Prefix> getNetworkPrefixList() {
+        return networkPrefixList;
+    }
+
+    public void setUpdateInterval(int updateInterval) {
+        this.updateInterval = updateInterval;
+    }
+
+    public void setHoldDownTimeout(int holdDownTimeout) {
+        this.holdDownTimeout = holdDownTimeout;
+    }
+
+    public void setFlushTimeout(int flushTimeout) {
+        this.flushTimeout = flushTimeout;
     }
 
     private void sendRequest(NetworkInterface egressInterface, IPv4Address targetAddress) throws RIPv2Exception {
@@ -493,7 +509,7 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
     }
 
     public boolean configuredPrefixesContain(IPv4Address address) {
-        for (IPv4Prefix p : this.networkPrefixList) {
+        for (IPv4Prefix p : this.getNetworkPrefixList()) {
             if (p.containsAddress(address)) {
                 return true;
             }
@@ -502,7 +518,7 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
     }
 
     public boolean configuredPrefixesContain(IPv4Prefix prefix) {
-        for (IPv4Prefix p : this.networkPrefixList) {
+        for (IPv4Prefix p : this.getNetworkPrefixList()) {
             if (p.containsPrefix(prefix)) {
                 return true;
             }

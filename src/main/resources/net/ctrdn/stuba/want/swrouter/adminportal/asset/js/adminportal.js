@@ -104,6 +104,11 @@ function load_view(view_name) {
                 data = get_view_routing_static();
                 break;
             }
+        case "routing-ripv2":
+            {
+                data = get_view_routing_ripv2();
+                break;
+            }
         case "network-interfaces":
             {
                 data = get_view_network_interfaces();
@@ -528,6 +533,125 @@ function get_view_routing_static() {
     return view_html;
 }
 
+function get_view_routing_ripv2() {
+    var view_html = "<h3><i class=\"glyphicon glyphicon-road\"></i> Routing Information Protocol v2</h3><placeholder identifier=\"ripv2_config\" /><div style=\"width:100%\"><div style=\"width:49%; float:left;\"><placeholder identifier=\"ripv2_interfaces\" /></div><div style=\"width:49%; float:right;\"><placeholder identifier=\"ripv2_networks\" /></div>";
+
+    call_swrouter_api("get-ripv2-configuration", function(data) {
+        var html = "<div class=\"panel panel-default\">"
+                + "<div class=\"panel-heading\">"
+                + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-wrench\"></i> Configuration</h3>"
+                + "</div>"
+                + "<div class=\"panel-body\"><table class=\"table table-striped\">";
+        html += "<tr><td width=\"30%\"><strong>Update Interval</strong></td><td><a href=\"#\" data-ripv2-param=\"UpdateInterval\">" + data["Response"]["RIPv2Configuration"]["UpdateInterval"] + "ms</a></td></tr>";
+        html += "<tr><td><strong>Hold Down Timeout</strong></td><td><a href=\"#\" data-ripv2-param=\"HoldDownTimeout\">" + data["Response"]["RIPv2Configuration"]["HoldDownTimeout"] + "ms</a></td></tr>";
+        html += "<tr><td><strong>Flush Timeout</strong></td><td><a href=\"#\" data-ripv2-param=\"FlushTimeout\">" + data["Response"]["RIPv2Configuration"]["FlushTimeout"] + "ms</a></td></tr>";
+        html += "</table></div></div>";
+
+        $("#content placeholder[identifier='ripv2_config']").html(html);
+
+        $("#content placeholder[identifier='ripv2_config'] a[data-ripv2-param]").editable({
+            type: "text",
+            placement: "right",
+            url: function(params) {
+                var d = new $.Deferred;
+                call_swrouter_api_params("configure-ripv2", $(this).attr("data-ripv2-param") + "=" + params.value, function(data) {
+                    d.resolve(data);
+                });
+                return d.promise();
+            },
+            success: function(response, newValue) {
+                if (response["UserError"] !== undefined) {
+                    return response["UserError"];
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            }
+        });
+    });
+
+    call_swrouter_api("get-ripv2-interfaces", function(data) {
+        var html = "<div class=\"panel panel-default\">"
+                + "<div class=\"panel-heading\">"
+                + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-resize-horizontal\"></i> Interfaces</h3>"
+                + "</div>"
+                + "<div class=\"panel-body\"><table class=\"table table-striped\">";
+        for (var i in data["Response"]["RIPv2Interfaces"]) {
+            var iface = data["Response"]["RIPv2Interfaces"][i];
+            html += "<tr><td><strong>" + iface["Name"] + "</strong></td>";
+            if (iface["Enabled"]) {
+                html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-danger\" data-ripv2-iface-toggle=\"" + iface["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a></td>";
+            } else {
+                html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-success\" data-ripv2-iface-toggle=\"" + iface["Name"] + "\"><i class=\"glyphicon glyphicon-ok\"></i> Enable</a></td>";
+            }
+            html += "</tr>";
+        }
+        html += "</table></div></div>";
+
+        $("#content placeholder[identifier='ripv2_interfaces']").html(html);
+
+        $("#content placeholder[identifier='ripv2_interfaces'] a[data-ripv2-iface-toggle]").click(function() {
+            call_swrouter_api_params("configure-ripv2-interface", "InterfaceName=" + $(this).attr("data-ripv2-iface-toggle") + "&Enabled=toggle", function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+        });
+    });
+
+
+    call_swrouter_api("get-ripv2-networks", function(data) {
+        var html = "<div class=\"panel panel-default\">"
+                + "<div class=\"panel-heading\">"
+                + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-link\"></i> Networks</h3>"
+                + "</div>"
+                + "<div class=\"panel-body\"><table class=\"table table-striped\">";
+        for (var i in data["Response"]["RIPv2Networks"]) {
+            var network = data["Response"]["RIPv2Networks"][i];
+            html += "<tr><td><strong>" + network + "</strong></td>";
+            html += "<td style=\"text-align: center;\"><a href=\"#\" class=\"btn btn-xs btn-danger\" data-ripv2-network-delete=\"" + network + "\"><i class=\"glyphicon glyphicon-trash\"></i> Remove</a></td>";
+            html += "</tr>";
+        }
+        html += "</table>"
+                + "<form class=\"form-inline\" id=\"add_ripv2_network_form\">"
+                + "<div class=\"form-group\">"
+                + "<label for=\"in_network_prefix\">Prefix</label>"
+                + "<input type=\"text\" class=\"form-control\" id=\"in_network_prefix\" placeholder=\"CIDR\">"
+                + " </div>"
+                + "<button type=\"submit\" class=\"btn btn-default\">Add Network</button>"
+                + "</form>"
+        html += "</div></div>";
+
+        $("#content placeholder[identifier='ripv2_networks']").html(html);
+
+        $("#content placeholder[identifier='ripv2_networks'] a[data-ripv2-network-delete]").click(function() {
+            call_swrouter_api_params("remove-ripv2-network", "IPv4Prefix=" + $(this).attr("data-ripv2-network-delete"), function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+        });
+
+        $("#content placeholder[identifier='ripv2_networks'] form#add_ripv2_network_form").submit(function() {
+            call_swrouter_api_params("add-ripv2-network", "IPv4Prefix=" + $("#in_network_prefix").val(), function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+        });
+    });
+
+    return view_html;
+}
 
 
 
