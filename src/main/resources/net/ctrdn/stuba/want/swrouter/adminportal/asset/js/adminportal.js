@@ -48,6 +48,12 @@ function tree_reload(fullReload) {
         tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"routing-ripv2\"><span><i class=\"glyphicon glyphicon-road\"></i> RIPv2 Routing</span></a></li>";
         tmhtml += "</ul></li>";
 
+        // NAT Submenu
+        tmhtml += "<li><span><i class=\"glyphicon glyphicon-retweet\"></i> Network Address Translation</span> <ul>";
+        tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"nat-configuration\"><span><i class=\"glyphicon glyphicon-wrench\"></i> Configuration</span></a></li>";
+        tmhtml += "<li style=\"display: none;\"><a href=\"#\" class=\"tmlink\" _open_view=\"nat-xlations\"><span><i class=\"glyphicon glyphicon-indent-left\"></i> Active Translations</span></a></li>";
+        tmhtml += "</ul></li>";
+
         // Configuration Management
         tmhtml += "<li><a href=\"#\" class=\"tmlink\" _open_view=\"configuration-management\"><span><i class=\"glyphicon glyphicon-wrench\"></i> Configuration Management</span></a></li>";
 
