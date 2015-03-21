@@ -139,6 +139,18 @@ function load_view(view_name, is_refresh) {
                 current_view_autorefresh = true;
                 break;
             }
+        case "nat-configuration":
+            {
+                data = get_view_nat_configuration(is_refresh);
+                current_view_autorefresh = false;
+                break;
+            }
+        case "nat-xlations":
+            {
+                data = get_view_nat_xlations(is_refresh);
+                current_view_autorefresh = true;
+                break;
+            }
     }
     if (!is_refresh) {
         current_view = view_name;
@@ -686,7 +698,37 @@ function get_view_routing_ripv2(is_refresh) {
     return view_html;
 }
 
+function get_view_nat_configuration(is_refresh) {
+    var view_html = "";
+    return view_html;
+}
 
+function get_view_nat_xlations(is_refresh) {
+    var view_html = "<h3><i class=\"glyphicon glyphicon-indent-left\"></i> Active NAT Translations</h3> <placeholder identifier=\"nat_xlations\" />";
+
+    call_swrouter_api("get-nat-translations", function(data) {
+        var html = "<table class=\"table table-striped\">";
+        html += "<thead><tr><th width=\"16\"></th><th>Summary</th><th>Last Activity</th><th>Timeout</th><th>Timeout in</th><th>Active</th><th>XLATE Hits</th><th>UNXLATE Hits</th></tr></thead>";
+        for (var i in data["Response"]["NATTranslations"]) {
+            var xlation = data["Response"]["NATTranslations"][i];
+            html += "<tr>";
+            html += "<td style=\"text-align: center;\"><i class=\"glyphicon glyphicon-" + ((xlation.Type === "PAT") ? "tag" : "tags") + "\"></i></td>";
+            html += "<td style=\"font-size: 9px;\">" + $("<strong />").text(xlation.Summary).html() + "</td>";
+            html += "<td>" + xlation.LastActivityDate + "</td>";
+            html += "<td>" + xlation.Timeout + "ms</td>";
+            html += "<td>" + ((xlation.TimeRemaining > 0) ? xlation.TimeRemaining + "ms" : "<i>timed out</i>") + "</td>";
+            html += "<td style=\"text-align: center\"><i class=\"glyphicon glyphicon-" + ((xlation.Active) ? "ok text-success" : "remove text-danger") + "\"></i></td>";
+            html += "<td>" + xlation.TranslateHitCount + "</td>";
+            html += "<td>" + xlation.UntranslateHitCount + "</td>";
+            html += "</tr>";
+        }
+        html += "</table>";
+
+        $("#content placeholder[identifier='nat_xlations']").html(html);
+    });
+
+    return view_html;
+}
 
 
 
