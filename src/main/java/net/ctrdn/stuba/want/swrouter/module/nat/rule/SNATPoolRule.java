@@ -191,6 +191,7 @@ public class SNATPoolRule extends DefaultNATRule {
         return overloadEnabled;
     }
 
+    @Override
     public List<NetworkInterface> getEcmpOutsideInterfaceList() {
         return ecmpOutsideInterfaceList;
     }

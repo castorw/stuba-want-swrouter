@@ -6,7 +6,7 @@ abstract public class DefaultNATRule implements NATRule {
 
     private final UUID id;
     private final NATModule natModule;
-    private final int priority;
+    private int priority;
 
     public DefaultNATRule(NATModule natModule, int priority) {
         this.natModule = natModule;
@@ -26,6 +26,11 @@ abstract public class DefaultNATRule implements NATRule {
     @Override
     public UUID getID() {
         return this.id;
+    }
+
+    @Override
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
 
 }

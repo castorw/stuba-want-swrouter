@@ -174,6 +174,7 @@ public class DNATRule extends DefaultNATRule {
         return protocol;
     }
 
+    @Override
     public List<NetworkInterface> getEcmpOutsideInterfaceList() {
         return ecmpOutsideInterfaceList;
     }
