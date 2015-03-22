@@ -286,8 +286,18 @@ public class NATModule extends DefaultRouterModule {
         return configJob;
     }
 
-    private void installNATRule(NATRule rule) {
+    public void installNATRule(NATRule rule) {
         this.getRuleList().add(rule);
+        this.sortNATRules();
+        this.logger.debug("Installed NAT rule Priority#{} {}", rule.getPriority(), rule);
+    }
+
+    public void uninstallNATRule(NATRule rule) throws NATException {
+        rule.clear();
+        this.ruleList.remove(rule);
+    }
+
+    public void sortNATRules() {
         Collections.sort(this.getRuleList(), new Comparator<NATRule>() {
 
             @Override
@@ -295,7 +305,6 @@ public class NATModule extends DefaultRouterModule {
                 return o1.getPriority() < o2.getPriority() ? -1 : o1.getPriority() == o2.getPriority() ? 0 : 1;
             }
         });
-        this.logger.debug("Installed NAT rule Priority#{} {}", rule.getPriority(), rule);
     }
 
     @Override
