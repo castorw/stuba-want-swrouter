@@ -711,6 +711,8 @@ function get_view_nat_configuration(is_refresh) {
         $("#content placeholder[identifier='nat_configuration']").html(html);
 
         $("a[data-nat-param]").editable({
+            type: "text",
+            placement: "right",
             url: function(params) {
                 var d = new $.Deferred;
                 call_swrouter_api_params("configure-nat", $(this).attr("data-nat-param") + "=" + params.value, function(data) {
@@ -729,6 +731,95 @@ function get_view_nat_configuration(is_refresh) {
         });
     });
 
+    call_swrouter_api("get-nat-pools", function(data) {
+        var html = "<div class=\"panel panel-default\">"
+                + "<div class=\"panel-heading\">"
+                + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-th\"></i> Pools</h3>"
+                + "</div>"
+                + "<div class=\"panel-body\"><table class=\"table table-striped\">"
+                + "<thead><tr><th width=\"16\"></th><th>Name</th><th>Prefix</th><th>Addresses</th><th></th></tr></thead>";
+        for (var i in data["Response"]["NATPools"]) {
+            var pool = data["Response"]["NATPools"][i];
+            html += "<tr>";
+            html += "<td><i class=\"glyphicon glyphicon-th-large\"></i></td>";
+            html += "<td><strong>" + pool.Name + "</strong></td>";
+            html += "<td>" + pool.Prefix + "</td>";
+            if (pool.Addresses.length === 0) {
+                html += "<td><i><a href=\"#\" data-nat-pool-edit-addresses=\"" + pool.ID + "\">none configured</a></i></td>";
+            } else {
+                var addrString = "";
+                for (var j in pool.Addresses) {
+                    if (addrString !== "") {
+                        addrString += "\n";
+                    }
+                    addrString += pool.Addresses[j];
+                }
+                html += "<td><a href=\"#\" data-nat-pool-edit-addresses=\"" + pool.ID + "\">" + addrString + "</a></td>";
+            }
+            html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-danger\" data-nat-pool-delete=\"" + pool.ID + "\"><i class=\"glyphicon glyphicon-trash\"></i> Remove</a></td>";
+        }
+        html += "</table>";
+        html += "</tr>"
+                + "<form class=\"form-vertical\" id=\"add_nat_pool\">"
+                + "<div class=\"form-group\">"
+                + "<label for=\"in_pool-name\">Name</label>"
+                + "<input type=\"text\" class=\"form-control\" id=\"in_pool-name\" placeholder=\"Pool1\">"
+                + " </div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_pool-prefix\">Prefix</label>"
+                + " <input type=\"email\" class=\"form-control\" id=\"in_pool-prefix\" placeholder=\"CIDR\">"
+                + "</div>"
+                + "<button type=\"submit\" class=\"btn btn-default\">Add Pool</button>"
+                + "</form>";
+
+
+        $("#content placeholder[identifier='nat_pools']").html(html);
+
+        $("#content placeholder[identifier='nat_pools'] a[data-nat-pool-delete]").click(function() {
+            call_swrouter_api_params("remove-nat-pool", "ID=" + $(this).attr("data-nat-pool-delete"), function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+        });
+
+        $("#content placeholder[identifier='nat_pools'] form#add_nat_pool").submit(function() {
+            var params = "Name=" + $("#in_pool-name").val() + "&Prefix=" + $("#in_pool-prefix").val();
+            call_swrouter_api_params("add-nat-pool", params, function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+            return false;
+        });
+
+        $("#content placeholder[identifier='nat_pools'] a[data-nat-pool-edit-addresses]").editable({
+            type: "textarea",
+            placement: "right",
+            escape: true,
+            url: function(params) {
+                var d = new $.Deferred;
+                call_swrouter_api_params("configure-nat-pool-addresses", "ID=" + $(this).attr("data-nat-pool-edit-addresses") + "&Addresses=" + params.value, function(data) {
+                    d.resolve(data);
+                });
+                return d.promise();
+            },
+            success: function(response, newValue) {
+                if (response["UserError"] !== undefined) {
+                    return response["UserError"];
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            }
+        });
+    });
     return view_html;
 }
 

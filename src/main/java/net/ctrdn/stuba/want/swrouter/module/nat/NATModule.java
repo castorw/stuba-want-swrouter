@@ -396,4 +396,8 @@ public class NATModule extends DefaultRouterModule {
     public RouterController getRouterController() {
         return this.routerController;
     }
+
+    public void addNATPool(NATPool pool) {
+        this.poolList.add(pool);
+    }
 }

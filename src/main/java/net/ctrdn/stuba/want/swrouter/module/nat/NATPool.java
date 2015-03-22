@@ -22,7 +22,7 @@ public class NATPool {
         this.id = UUID.randomUUID();
     }
 
-    protected void addAddress(IPv4Address address) throws NATException {
+    public void addAddress(IPv4Address address) throws NATException {
         if (this.getPrefix().containsAddress(address)) {
             this.getAddressList().add(this.natModule.getNATAddress(address));
         } else {
