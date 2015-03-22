@@ -44,7 +44,13 @@ public class SNATPoolRule extends DefaultNATRule {
         this.insidePrefix = insidePrefix;
         this.outsidePool = outsidePool;
         this.overloadEnabled = overloadEnabled;
+        this.evaluatePool();
+    }
+
+    public final void evaluatePool() throws NATException {
         try {
+            this.availableAddressList.clear();
+            this.addressInterfaceMap.clear();
             for (NATAddress na : this.outsidePool.getAddressList()) {
                 NetworkInterface iface = null;
                 for (NetworkInterface ni : this.getNatModule().getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {

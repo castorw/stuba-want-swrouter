@@ -15,6 +15,8 @@ import net.ctrdn.stuba.want.swrouter.exception.NATException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.module.nat.NATModule;
 import net.ctrdn.stuba.want.swrouter.module.nat.NATPool;
+import net.ctrdn.stuba.want.swrouter.module.nat.NATRule;
+import net.ctrdn.stuba.want.swrouter.module.nat.rule.SNATPoolRule;
 
 public class ConfigureNATPoolAddressesAPIMethod extends DefaultAPIMethod {
 
@@ -41,6 +43,14 @@ public class ConfigureNATPoolAddressesAPIMethod extends DefaultAPIMethod {
             for (String addressString : addressStringArray) {
                 IPv4Address address = IPv4Address.fromString(addressString);
                 foundPool.addAddress(address);
+            }
+            for (NATRule rule : natModule.getRuleList()) {
+                if (rule.getTypeString().equals("SNAT_POOL")) {
+                    SNATPoolRule ruleCast = (SNATPoolRule) rule;
+                    if (ruleCast.getOutsidePool().getName().equals(foundPool.getName())) {
+                        ruleCast.evaluatePool();
+                    }
+                }
             }
             JsonObjectBuilder responseJob = Json.createObjectBuilder();
             responseJob.add("Success", true);
