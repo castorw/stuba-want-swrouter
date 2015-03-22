@@ -146,7 +146,7 @@ public class ARPManagerModule extends DefaultRouterModule {
     }
 
     public synchronized void removeVirtualAddress(IPv4Address address, NetworkInterface iface) {
-        this.virtualAddressMap.remove(address, iface);
+        this.virtualAddressMap.remove(address);
     }
 
     public void setPipelineResolutionTimeout(int pipelineResolutionTimeout) {
