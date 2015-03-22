@@ -2,7 +2,6 @@ package net.ctrdn.stuba.want.swrouter.module.nat.rule;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import net.ctrdn.stuba.want.swrouter.common.IPv4Protocol;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4Address;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
