@@ -296,16 +296,19 @@ function get_view_network_interfaces(is_refresh) {
             html += "<td>" + obj.TransmittedPacketCount + "</td>";
             html += "<td>" + format_octet_size(obj.TransmittedByteCount) + "</td>";
 
+            html += "<td style=\"text-align: right;\">";
+            html += "<a href=\"#\" class=\"btn btn-xs btn-warning nic_clear_stats\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-ban-circle\"></i> Clear Stats</a> ";
             if (obj["Enabled"]) {
-                html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-danger nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a></td>";
+                html += "<a href=\"#\" class=\"btn btn-xs btn-danger nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a>";
             } else {
-                html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-success nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-ok\"></i> Enable</a></td>";
+                html += "<a href=\"#\" class=\"btn btn-xs btn-success nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-ok\"></i> Enable</a>";
             }
-            html += "</tr>";
+            html += "</td></tr>";
         }
         html += "</tbody>";
         html += "</table>";
-        html += "<div class=\"alert alert-warning\" role=\"alert\"><strong>Address removal!</strong> In order to remove interface IPv4 address, set the value to empty or dash.</div>";
+        html += "<div style=\"width: 100%;\"><a href=\"#\" style=\"float:right; margin: 3px;\" class=\"btn btn-xs btn-warning nic_clear_stats\"><i class=\"glyphicon glyphicon-ban-circle\"></i> Clear All Interfaces Stats</a></div>";
+        html += "<div style=\"float: left; width: 100%;\" class=\"alert alert-warning\" role=\"alert\"><strong>Address removal!</strong> In order to remove interface IPv4 address, set the value to empty or dash.</div>";
 
         $("#content placeholder[identifier='network_interfaces']").html(html);
 
@@ -333,6 +336,21 @@ function get_view_network_interfaces(is_refresh) {
 
         $(".nic_enabled").click(function() {
             call_swrouter_api_params("configure-network-interface", "InterfaceName=" + $(this).attr("_interface") + "&Enabled=toggle", function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+        });
+
+        $(".nic_clear_stats").click(function() {
+            var post_data = "";
+            if ($(this).attr("_interface") !== undefined && $(this).attr("_interface") !== null && $(this).attr("_interface") !== "") {
+                post_data = "InterfaceName=" + $(this).attr("_interface");
+            }
+            call_swrouter_api_params("reset-network-interface-stats", post_data, function(data) {
                 if (data["UserError"] !== undefined) {
                     alert(data["UserError"]);
                 } else {
