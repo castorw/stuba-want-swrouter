@@ -763,14 +763,14 @@ function get_view_nat_configuration(is_refresh) {
                 + "<form class=\"form-vertical\" id=\"add_nat_pool\">"
                 + "<div class=\"form-group\">"
                 + "<label for=\"in_pool-name\">Name</label>"
-                + "<input type=\"text\" class=\"form-control\" id=\"in_pool-name\" placeholder=\"Pool1\">"
+                + "<input type=\"text\" class=\"form-control\" id=\"in_pool-name\" placeholder=\"NAT Pool\">"
                 + " </div>"
                 + "<div class=\"form-group\">"
                 + " <label for=\"in_pool-prefix\">Prefix</label>"
                 + " <input type=\"email\" class=\"form-control\" id=\"in_pool-prefix\" placeholder=\"CIDR\">"
                 + "</div>"
                 + "<button type=\"submit\" class=\"btn btn-default\">Add Pool</button>"
-                + "</form>";
+                + "</form></div></div>";
 
 
         $("#content placeholder[identifier='nat_pools']").html(html);
@@ -820,6 +820,198 @@ function get_view_nat_configuration(is_refresh) {
             }
         });
     });
+
+    call_swrouter_api("get-nat-rules", function(data) {
+        var html = "<div class=\"panel panel-default\">"
+                + "<div class=\"panel-heading\">"
+                + "<h3 class=\"panel-title\"><i class=\"glyphicon glyphicon-list\"></i> Rules</h3>"
+                + "</div>"
+                + "<div class=\"panel-body\"><table class=\"table table-striped\">"
+                + "<thead><tr><th width=\"16\"></th><th>Priority</th><th>Summary</th><th>ECMP Outside Interfaces</th><th></th></tr></thead>";
+        for (var i in data["Response"]["NATRules"]) {
+            var rule = data["Response"]["NATRules"][i];
+            html += "<tr>";
+            html += "<td><i class=\"glyphicon glyphicon-list\"></i></td>";
+            html += "<td><a href=\"#\" data-nat-rule-edit=\"" + rule.ID + "\" data-nat-rule-param=\"Priority\">" + rule.Priority + "</a></td>";
+            html += "<td style=\"font-size: 10px;\"><strong>" + $("<strong />").text(rule.Summary).html() + "</strong></td>";
+            if (rule.Configuration.ECMPOutsideInterfaces === null || rule.Configuration.ECMPOutsideInterfaces.length === 0) {
+                html += "<td><i><a href=\"#\" data-nat-rule-edit=\"" + rule.ID + "\" data-nat-rule-param=\"ECMPOutsideInterfaces\">none</a></i></td>";
+            } else {
+                var ecmpoiString = "";
+                for (var j in rule.Configuration.ECMPOutsideInterfaces) {
+                    if (ecmpoiString !== "") {
+                        ecmpoiString += "\n";
+                    }
+                    ecmpoiString += rule.Configuration.ECMPOutsideInterfaces[j];
+                }
+                html += "<td><a href=\"#\" data-nat-rule-edit=\"" + rule.ID + "\" data-nat-rule-param=\"ECMPOutsideInterfaces\">" + ecmpoiString + "</a></td>";
+            }
+            html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-danger\" data-nat-rule-delete=\"" + rule.ID + "\"><i class=\"glyphicon glyphicon-trash\"></i> Remove</a></td>";
+        }
+        html += "</table>";
+        html += "</tr>"
+                + "<form class=\"form-vertical\" id=\"add_nat_rule_form\">"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_type\">Type</label>"
+                + " <select id=\"in_rule_type\" data-submit-field-name=\"Type\"><option value=\"SNAT_INTERFACE\">SNAT_INTERFACE</option><option value=\"SNAT_POOL\">SNAT_POOL</option><option value=\"DNAT\">DNAT</option></select>"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + "<label for=\"in_rule_priority\">Priority</label>"
+                + "<input type=\"text\" class=\"form-control\" id=\"in_rule_priority\"  data-submit-field-name=\"Priority\" placeholder=\"1000\" value=\"1000\">"
+                + " </div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_inside_address\">Inside Address</label>"
+                + " <input type=\"email\" class=\"form-control\" id=\"in_rule_inside_address\"  data-submit-field-name=\"InsideAddress\" placeholder=\"IPv4 Address\">"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_outside_address\">Outside Address</label>"
+                + " <input type=\"email\" class=\"form-control\" id=\"in_rule_outside_address\"  data-submit-field-name=\"OutsideAddress\" placeholder=\"IPv4 Address\">"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_inside_prefix\">Inside Prefix</label>"
+                + " <input type=\"email\" class=\"form-control\" id=\"in_rule_inside_prefix\"  data-submit-field-name=\"InsidePrefix\" placeholder=\"IPv4 CIDR\">"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_outside_interface\">Outside Interface</label>"
+                + " <select id=\"in_rule_outside_interface\"  data-submit-field-name=\"OutsideInterface\"></select>"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_outside_pool\">Outside Pool</label>"
+                + " <select id=\"in_rule_outside_pool\"  data-submit-field-name=\"OutsidePool\"></select>"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_overload_enabled\">Overload Enabled</label>"
+                + " <select id=\"in_rule_overload_enabled\"  data-submit-field-name=\"OverloadEnabled\"><option value=\"true\">Yes</option><option value=\"false\">No</option></select>"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_protocol\">Protocol</label>"
+                + " <select id=\"in_rule_protocol\"  data-submit-field-name=\"Protocol\"><option value=\"\">Any</option><option value=\"TCP\">TCP</option><option value=\"UDP\">UDP</option><option value=\"ICMP\">ICMP</option></select>"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_inside_ps_identifier\">Inside Port or ICMP Identifier</label>"
+                + " <input type=\"email\" class=\"form-control\" id=\"in_rule_inside_ps_identifier\"  data-submit-field-name=\"InsideProtocolSpecificIdentifier\" placeholder=\"Port or Identifier\">"
+                + "</div>"
+                + "<div class=\"form-group\">"
+                + " <label for=\"in_rule_outside_ps_identifier\">Outside Port or ICMP Identifier</label>"
+                + " <input type=\"email\" class=\"form-control\" id=\"in_rule_outside_ps_identifier\"  data-submit-field-name=\"OutsideProtocolSpecificIdentifier\" placeholder=\"Port or Identifier\">"
+                + "</div>"
+                + "<button type=\"submit\" class=\"btn btn-default\">Add Rule</button>"
+                + "</form></div></div>";
+
+
+        $("#content placeholder[identifier='nat_rules']").html(html);
+
+        call_swrouter_api("get-network-interfaces", function(data) {
+            var options_html = "";
+            for (var i in data.Response.NetworkInterfaces) {
+                var iface = data.Response.NetworkInterfaces[i];
+                options_html += "<option value=\"" + iface.Name + "\">" + iface.Name + "</option>";
+            }
+            $("#in_rule_outside_interface").html(options_html);
+        });
+
+        call_swrouter_api("get-nat-pools", function(data) {
+            var options_html = "";
+            for (var i in data.Response.NATPools) {
+                var pool = data.Response.NATPools[i];
+                options_html += "<option value=\"" + pool.Name + "\">" + pool.Name + "</option>";
+            }
+            $("#in_rule_outside_pool").html(options_html);
+        });
+
+        $("select[data-submit-field-name='Type']").change(function() {
+            var fs = $("form#add_nat_rule_form");
+            $("input, select", fs).parent("div").hide();
+            $("#in_rule_type, #in_rule_priority", fs).parent("div").show();
+            switch ($(this).val()) {
+                case "SNAT_INTERFACE":
+                    {
+                        $("#in_rule_inside_prefix, #in_rule_outside_interface", fs).parent("div").show();
+                        break;
+                    }
+                case "SNAT_POOL":
+                    {
+                        $("#in_rule_inside_prefix, #in_rule_outside_pool, #in_rule_overload_enabled", fs).parent("div").show();
+                        break;
+                    }
+                case "DNAT":
+                    {
+                        $("#in_rule_inside_address, #in_rule_outside_address, #in_rule_protocol, #in_rule_inside_ps_identifier, #in_rule_outside_ps_identifier", fs).parent("div").show();
+                        break;
+                    }
+            }
+        }).change();
+
+        $("select[data-submit-field-name='Protocol']").change(function() {
+            var fs = $("form#add_nat_rule_form");
+            switch ($(this).val())
+            {
+                case "TCP":
+                case "UDP" :
+                    {
+                        $("#in_rule_inside_ps_identifier, #in_rule_outside_ps_identifier", fs).parent("div").show();
+                        break;
+                    }
+                case "ICMP":
+                default :
+                    {
+                        $("#in_rule_inside_ps_identifier, #in_rule_outside_ps_identifier", fs).parent("div").hide();
+                        break;
+                    }
+            }
+        }).change();
+
+        $("form#add_nat_rule_form").submit(function() {
+            var post_data = "";
+            $("[data-submit-field-name]", $(this)).each(function() {
+                if (post_data !== "") {
+                    post_data += "&";
+                }
+                post_data += $(this).attr("data-submit-field-name") + "=" + $(this).val();
+            });
+            call_swrouter_api_params("add-nat-rule", post_data, function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+            return false;
+        });
+
+        $("#content placeholder[identifier='nat_rules'] a[data-nat-rule-delete]").click(function() {
+            call_swrouter_api_params("remove-nat-rule", "ID=" + $(this).attr("data-nat-rule-delete"), function(data) {
+                if (data["UserError"] !== undefined) {
+                    alert(data["UserError"]);
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            });
+        });
+
+        $("#content placeholder[identifier='nat_rules'] a[data-nat-rule-edit]").editable({
+            type: "textarea",
+            placement: "right",
+            escape: true,
+            url: function(params) {
+                var d = new $.Deferred;
+                call_swrouter_api_params("configure-nat-rule", "ID=" + $(this).attr("data-nat-rule-edit") + "&" + $(this).attr("data-nat-rule-param") + "=" + params.value, function(data) {
+                    d.resolve(data);
+                });
+                return d.promise();
+            },
+            success: function(response, newValue) {
+                if (response["UserError"] !== undefined) {
+                    return response["UserError"];
+                } else {
+                    tree_reload(false);
+                    reload_view();
+                }
+            }
+        });
+    });
     return view_html;
 }
 
@@ -833,7 +1025,7 @@ function get_view_nat_xlations(is_refresh) {
             var xlation = data["Response"]["NATTranslations"][i];
             html += "<tr>";
             html += "<td style=\"text-align: center;\"><i class=\"glyphicon glyphicon-" + ((xlation.Type === "PAT") ? "tag" : "tags") + "\"></i></td>";
-            html += "<td style=\"font-size: 9px;\">" + $("<strong />").text(xlation.Summary).html() + "</td>";
+            html += "<td style=\"font-size: 10px;\"><strong>" + $("<strong />").text(xlation.Summary).html() + "</strong></td>";
             html += "<td>" + xlation.LastActivityDate + "</td>";
             html += "<td>" + xlation.Timeout + "ms</td>";
             html += "<td>" + ((xlation.TimeRemaining > 0) ? xlation.TimeRemaining + "ms" : "<i>timed out</i>") + "</td>";
