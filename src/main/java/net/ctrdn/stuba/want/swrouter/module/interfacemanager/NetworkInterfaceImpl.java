@@ -51,6 +51,8 @@ public class NetworkInterfaceImpl implements NetworkInterface {
                         }
                         packet.setProcessingChain(chain);
                         Receiver.this.networkInterface.routerController.getPacketProcessor().processPacket(packet);
+                        NetworkInterfaceImpl.this.receivedPacketCount++;
+                        NetworkInterfaceImpl.this.receivedByteCount += packet.getPacketBuffer().size();
                     } catch (PacketException | NoSuchModuleException ex) {
                         Receiver.this.networkInterface.logger.warn("Failed to process incoming packet on interface {}", Receiver.this.networkInterface.getName(), ex);
                     }
@@ -76,6 +78,11 @@ public class NetworkInterfaceImpl implements NetworkInterface {
     private final PcapIf pcapInterface;
     private Receiver receiver;
     private Thread receiverThread;
+
+    private long transmittedPacketCount = 0;
+    private long transmittedByteCount = 0;
+    private long receivedPacketCount = 0;
+    private long receivedByteCount = 0;
 
     protected NetworkInterfaceImpl(String name, int mtu, MACAddress hardwareAddress, PcapIf pcapInterface, RouterController routerController) {
         this.routerController = routerController;
@@ -163,6 +170,8 @@ public class NetworkInterfaceImpl implements NetworkInterface {
     public synchronized void sendPacket(Packet packet) {
         if (this.receiver != null) {
             this.pcap.sendPacket(packet.getPacketBuffer());
+            NetworkInterfaceImpl.this.transmittedPacketCount++;
+            NetworkInterfaceImpl.this.transmittedByteCount += packet.getPacketBuffer().size();
         } else {
             this.logger.warn("Cannot transmit data over inactive interface");
         }
@@ -239,5 +248,33 @@ public class NetworkInterfaceImpl implements NetworkInterface {
                 this.logger.error("Failed to remove connected route - routing core module is not available", ex);
             }
         }
+    }
+
+    @Override
+    public long getTransmittedPacketCount() {
+        return transmittedPacketCount;
+    }
+
+    @Override
+    public long getTransmittedByteCount() {
+        return transmittedByteCount;
+    }
+
+    @Override
+    public long getReceivedPacketCount() {
+        return receivedPacketCount;
+    }
+
+    @Override
+    public long getReceivedByteCount() {
+        return receivedByteCount;
+    }
+
+    @Override
+    public void resetStats() {
+        this.transmittedPacketCount = 0;
+        this.transmittedByteCount = 0;
+        this.receivedPacketCount = 0;
+        this.receivedByteCount = 0;
     }
 }

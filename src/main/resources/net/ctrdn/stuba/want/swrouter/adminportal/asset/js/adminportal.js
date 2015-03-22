@@ -124,7 +124,7 @@ function load_view(view_name, is_refresh) {
         case "network-interfaces":
             {
                 data = get_view_network_interfaces(is_refresh);
-                current_view_autorefresh = false;
+                current_view_autorefresh = true;
                 break;
             }
         case "configuration-management":
@@ -276,7 +276,7 @@ function get_view_network_interfaces(is_refresh) {
     call_swrouter_api("get-network-interfaces", function(data) {
         var html = "<h3><i class=\"glyphicon glyphicon-resize-horizontal\"></i> Network Interfaces</h3>";
         html += "<table class=\"table table-striped\">";
-        html += "<thead><tr><th width=\"16\"></th><th>Name</th><th>MTU</th><th>Hardware Address</th><th>IPv4 Address</th><th>Enabled</th></tr></thead>";
+        html += "<thead><tr><th width=\"16\"></th><th>Name</th><th>MTU</th><th>Hardware Address</th><th>IPv4 Address</th><th>RX Packets</th><th>RX Bytes</th><th>TX Packets</th><th>TX Bytes</th><th></th></tr></thead>";
         html += "<tbody>";
         for (var i in data["Response"]["NetworkInterfaces"]) {
             var obj = data["Response"]["NetworkInterfaces"][i];
@@ -290,6 +290,11 @@ function get_view_network_interfaces(is_refresh) {
             } else {
                 html += "<td><a href=\"#\" class=\"nic_address\" _interface=\"" + obj["Name"] + "\">" + obj["IPv4Address"] + "/" + obj["IPv4NetworkMask"] + "</a></td > ";
             }
+
+            html += "<td>" + obj.ReceivedPacketCount + "</td>";
+            html += "<td>" + format_octet_size(obj.ReceivedByteCount) + "</td>";
+            html += "<td>" + obj.TransmittedPacketCount + "</td>";
+            html += "<td>" + format_octet_size(obj.TransmittedByteCount) + "</td>";
 
             if (obj["Enabled"]) {
                 html += "<td style=\"text-align: right;\"><a href=\"#\" class=\"btn btn-xs btn-danger nic_enabled\" _interface=\"" + obj["Name"] + "\"><i class=\"glyphicon glyphicon-remove\"></i> Disable</a></td>";

@@ -21,4 +21,14 @@ public interface NetworkInterface {
     public void setIPv4InterfaceAddress(IPv4InterfaceAddress interfaceAddress);
 
     public void sendPacket(Packet packet);
+
+    public long getTransmittedPacketCount();
+
+    public long getTransmittedByteCount();
+
+    public long getReceivedPacketCount();
+
+    public long getReceivedByteCount();
+
+    public void resetStats();
 }
