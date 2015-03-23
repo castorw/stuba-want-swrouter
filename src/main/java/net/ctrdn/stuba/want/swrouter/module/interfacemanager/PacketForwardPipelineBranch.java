@@ -33,7 +33,7 @@ public class PacketForwardPipelineBranch extends DefaultPipelineBranch {
     @Override
     public PipelineResult process(Packet packet) {
         try {
-            if ((packet.getProcessingChain() == ProcessingChain.FORWARD || (packet.getProcessingChain() == ProcessingChain.OUTPUT) && packet.getEthernetType() == EthernetType.IPV4 && packet.getForwarderIPv4Address() != null && packet.getForwarderHardwareAddress() != null)) {
+            if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.OUTPUT) && packet.getEthernetType() == EthernetType.IPV4 && packet.getForwarderIPv4Address() != null && packet.getForwarderHardwareAddress() != null) {
                 try {
                     if (packet.getForwarderIPv4Address() == null && packet.getForwarderHardwareAddress() == null && packet.getEgressNetworkInterface() != null && !packet.getDestinationHardwareAddress().equals(MACAddress.ZERO) && packet.getDestinationHardwareAddress() != null) {
                         packet.setSourceHardwareAddress(packet.getEgressNetworkInterface().getHardwareAddress());
