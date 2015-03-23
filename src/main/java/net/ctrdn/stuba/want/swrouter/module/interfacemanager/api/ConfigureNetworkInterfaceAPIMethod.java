@@ -12,6 +12,7 @@ import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.APIMethodException;
 import net.ctrdn.stuba.want.swrouter.exception.APIMethodUserException;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
+import net.ctrdn.stuba.want.swrouter.exception.NetworkInterfaceException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.InterfaceManagerModule;
 import net.ctrdn.stuba.want.swrouter.module.interfacemanager.NetworkInterface;
@@ -52,7 +53,7 @@ public class ConfigureNetworkInterfaceAPIMethod extends DefaultAPIMethod {
             return responseJob;
         } catch (NoSuchModuleException ex) {
             throw new APIMethodException("Failed to access interface manager module");
-        } catch (IPv4MathException ex) {
+        } catch (IPv4MathException | NetworkInterfaceException ex) {
             throw new APIMethodUserException(ex.getMessage());
         }
     }

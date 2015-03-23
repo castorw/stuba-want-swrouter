@@ -159,12 +159,12 @@ function load_view(view_name, is_refresh) {
 }
 
 function reload_view() {
-    load_view(current_view, true);
+    load_view(current_view, false);
 }
 
 function autorefresh_view() {
     if (current_view_autorefresh) {
-        reload_view();
+        load_view(current_view, true);
     }
     setTimeout(function() {
         autorefresh_view();

@@ -8,6 +8,7 @@ import net.ctrdn.stuba.want.swrouter.common.net.IPv4Prefix;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
 import net.ctrdn.stuba.want.swrouter.core.processing.ProcessingChain;
+import net.ctrdn.stuba.want.swrouter.exception.NetworkInterfaceException;
 import net.ctrdn.stuba.want.swrouter.exception.NoSuchModuleException;
 import net.ctrdn.stuba.want.swrouter.exception.PacketException;
 import net.ctrdn.stuba.want.swrouter.module.routingcore.IPv4Route;
@@ -123,7 +124,10 @@ public class NetworkInterfaceImpl implements NetworkInterface {
     }
 
     @Override
-    public void setEnabled(boolean enabled) {
+    public void setEnabled(boolean enabled) throws NetworkInterfaceException {
+        if (enabled == true && this.getIPv4InterfaceAddress() == null) {
+            throw new NetworkInterfaceException("Cannot enable interface without an IPv4 address configured.");
+        }
         boolean prev = this.enabled;
         this.enabled = enabled;
         if (prev && !this.enabled) {

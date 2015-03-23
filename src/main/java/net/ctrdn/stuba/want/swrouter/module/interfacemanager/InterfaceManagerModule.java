@@ -17,6 +17,7 @@ import net.ctrdn.stuba.want.swrouter.core.DefaultRouterModule;
 import net.ctrdn.stuba.want.swrouter.core.RouterController;
 import net.ctrdn.stuba.want.swrouter.exception.IPv4MathException;
 import net.ctrdn.stuba.want.swrouter.exception.ModuleInitializationException;
+import net.ctrdn.stuba.want.swrouter.exception.NetworkInterfaceException;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
 import org.slf4j.Logger;
@@ -46,7 +47,7 @@ public class InterfaceManagerModule extends DefaultRouterModule {
                                 iface.setIPv4InterfaceAddress(new IPv4InterfaceAddress(IPv4Address.fromString(ifaceConfig.getString("IPv4Address")), new IPv4NetworkMask(ifaceConfig.getInt("IPv4NetworkMask"))));
                             }
                             iface.setEnabled(ifaceConfig.getBoolean("Enabled"));
-                        } catch (IPv4MathException ex) {
+                        } catch (IPv4MathException | NetworkInterfaceException ex) {
                             this.logger.error("Failed to configure IPv4 on interface {}", iface.getName(), ex);
                         }
                     }

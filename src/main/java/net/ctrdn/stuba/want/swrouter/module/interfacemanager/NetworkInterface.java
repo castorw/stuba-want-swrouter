@@ -3,6 +3,7 @@ package net.ctrdn.stuba.want.swrouter.module.interfacemanager;
 import net.ctrdn.stuba.want.swrouter.common.MACAddress;
 import net.ctrdn.stuba.want.swrouter.common.net.IPv4InterfaceAddress;
 import net.ctrdn.stuba.want.swrouter.core.processing.Packet;
+import net.ctrdn.stuba.want.swrouter.exception.NetworkInterfaceException;
 
 public interface NetworkInterface {
 
@@ -10,7 +11,7 @@ public interface NetworkInterface {
 
     public boolean isEnabled();
 
-    public void setEnabled(boolean enabled);
+    public void setEnabled(boolean enabled) throws NetworkInterfaceException;
 
     public int getMTU();
 
