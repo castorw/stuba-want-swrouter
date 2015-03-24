@@ -32,35 +32,31 @@ public class PacketForwardPipelineBranch extends DefaultPipelineBranch {
 
     @Override
     public PipelineResult process(Packet packet) {
-        try {
-            if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.OUTPUT) && packet.getEthernetType() == EthernetType.IPV4 && packet.getForwarderIPv4Address() != null && packet.getForwarderHardwareAddress() != null) {
-                try {
-                    if (packet.getForwarderIPv4Address() == null && packet.getForwarderHardwareAddress() == null && packet.getEgressNetworkInterface() != null && !packet.getDestinationHardwareAddress().equals(MACAddress.ZERO) && packet.getDestinationHardwareAddress() != null) {
-                        packet.setSourceHardwareAddress(packet.getEgressNetworkInterface().getHardwareAddress());
-                        packet.setIPv4TimeToLive((short) (packet.getIPv4TimeToLive() - 1));
-                        packet.calculateIPv4Checksum();
-                        this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPacketBuffer().getByteArray(0, packet.getPacketBuffer().size()), true));
-                        packet.getEgressNetworkInterface().sendPacket(packet);
-                        return PipelineResult.HANDLED;
-                    } else if (packet.getForwarderIPv4Address() != null && packet.getForwarderHardwareAddress() != null && !packet.getForwarderHardwareAddress().equals(MACAddress.ZERO) && packet.getEgressNetworkInterface() != null) {
-                        packet.setSourceHardwareAddress(packet.getEgressNetworkInterface().getHardwareAddress());
-                        packet.setDestinationHardwareAddress(packet.getForwarderHardwareAddress());
-                        packet.setIPv4TimeToLive((short) (packet.getIPv4TimeToLive() - 1));
-                        packet.calculateIPv4Checksum();
-                        this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPacketBuffer().getByteArray(0, packet.getPacketBuffer().size()), true));
-                        packet.getEgressNetworkInterface().sendPacket(packet);
-                        return PipelineResult.HANDLED;
-                    } else {
-                        this.logger.info("Cannot forward packet {} - no forwarding information set", packet.getPacketIdentifier().getUuid().toString());
-                        return PipelineResult.DROP;
-                    }
-                } catch (PacketException ex) {
-                    this.logger.warn("Failed processing forwarded packet {}", packet.getPacketIdentifier().getUuid().toString(), ex);
+        if ((packet.getProcessingChain() == ProcessingChain.FORWARD || packet.getProcessingChain() == ProcessingChain.OUTPUT) && packet.getEthernetType() == EthernetType.IPV4) {
+            try {
+                if (packet.getForwarderIPv4Address() == null && packet.getForwarderHardwareAddress() == null && packet.getEgressNetworkInterface() != null && !packet.getDestinationHardwareAddress().equals(MACAddress.ZERO) && packet.getDestinationHardwareAddress() != null) {
+                    packet.setSourceHardwareAddress(packet.getEgressNetworkInterface().getHardwareAddress());
+                    packet.setIPv4TimeToLive((short) (packet.getIPv4TimeToLive() - 1));
+                    packet.calculateIPv4Checksum();
+                    this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPacketBuffer().getByteArray(0, packet.getPacketBuffer().size()), true));
+                    packet.getEgressNetworkInterface().sendPacket(packet);
+                    return PipelineResult.HANDLED;
+                } else if (packet.getForwarderIPv4Address() != null && packet.getForwarderHardwareAddress() != null && !packet.getForwarderHardwareAddress().equals(MACAddress.ZERO) && packet.getEgressNetworkInterface() != null) {
+                    packet.setSourceHardwareAddress(packet.getEgressNetworkInterface().getHardwareAddress());
+                    packet.setDestinationHardwareAddress(packet.getForwarderHardwareAddress());
+                    packet.setIPv4TimeToLive((short) (packet.getIPv4TimeToLive() - 1));
+                    packet.calculateIPv4Checksum();
+                    this.logger.trace("Transmitting FORWARD packet over interface {}\n{}", packet.getEgressNetworkInterface().getName(), DataTypeHelpers.byteArrayToHexString(packet.getPacketBuffer().getByteArray(0, packet.getPacketBuffer().size()), true));
+                    packet.getEgressNetworkInterface().sendPacket(packet);
+                    return PipelineResult.HANDLED;
+                } else {
+                    this.logger.info("Cannot forward packet {} - no forwarding information set", packet.getPacketIdentifier().getUuid().toString());
                     return PipelineResult.DROP;
                 }
+            } catch (PacketException ex) {
+                this.logger.warn("Failed processing forwarded packet {}", packet.getPacketIdentifier().getUuid().toString(), ex);
+                return PipelineResult.DROP;
             }
-        } catch (PacketException ex) {
-            this.logger.warn("Problem processing forward packet {}", packet.getPacketIdentifier().getUuid().toString(), ex);
         }
         return PipelineResult.CONTINUE;
     }
