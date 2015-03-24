@@ -401,6 +401,12 @@ public class RIPv2RoutingModule extends DefaultRouterModule {
             List<RIPv2RouteEntry> outputEntryList = new ArrayList<>();
             List<IPv4Prefix> addedPrefixes = new ArrayList<>();
 
+            if (this.configuredPrefixesContain(IPv4Prefix.fromString("0.0.0.0/0"))) {
+                this.logger.debug("Created RIPv2 response will contain default route to 0.0.0.0/0");
+                outputEntryList.add(new RIPv2RouteEntry(2, IPv4Address.fromString("0.0.0.0"), 0, IPv4Prefix.fromString("0.0.0.0/0"), IPv4Address.fromString("0.0.0.0"), 1));
+                addedPrefixes.add(IPv4Prefix.fromString("0.0.0.0/0"));
+            }
+
             for (NetworkInterface iface2 : this.getRouterController().getModule(InterfaceManagerModule.class).getNetworkInterfaces()) {
                 if (ignoredInterface != iface2 && iface2.getIPv4InterfaceAddress() != null && !addedPrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix()) && this.configuredPrefixesContain(iface2.getIPv4InterfaceAddress().getPrefix())) {
                     if (includePrefixes == null || includePrefixes.contains(iface2.getIPv4InterfaceAddress().getPrefix())) {
